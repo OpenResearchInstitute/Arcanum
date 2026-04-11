@@ -291,10 +291,10 @@ docs/
 
 ```
 cmom-engine/
-├── README.md
+├── README.md                        This document
 ├── LICENSE
 ├── docs/
-│   ├── sow.md                        This document
+│   |
 │   ├── nec-import/
 │   │   ├── design.md                 Parser architecture, card routing, error handling
 │   │   ├── card-reference.md         Supported cards with field definitions
