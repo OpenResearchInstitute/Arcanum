@@ -1,6 +1,10 @@
 # Arcanum
 Open Source MoM Solver for Antenna Design and Analysis
 
+Get involved at https://openresearch.instititue/getting-started
+
+Find #antenna-design channel on ORI Slack after securing an invitation (see link above). 
+
 ## Statement of Work: Open Source CMoM Antenna Simulation Engine
 
 **Project:** Conformal Method of Moments (CMoM) Antenna Simulation Engine  
