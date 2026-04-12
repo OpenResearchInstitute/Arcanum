@@ -161,18 +161,21 @@ GA 1 4 0.5 0.0 180.0 0.001
 GE 0
 ```
 
-A semicircular arc of radius 0.5 m, from 0° to 180°, 4 segments, in the default plane. Here's where CMoM starts to show off.
+A semicircular arc of radius 0.5 m, from 0° to 180°, 4 segments. Per NEC GA card convention, the arc lies in the XZ plane (y = 0 for all points). Angles are measured from the positive x-axis toward the positive z-axis. Here's where CMoM starts to show off. 
 
-**Expected Mesh:**
+**Expected Mesh:***
 - Segment count: 4
 - Each segment subtends 45° of arc
-- Segment 0 start: (0.5, 0.0, 0.0)
-- Segment 0 end: (cos(45°)×0.5, sin(45°)×0.5, 0.0) = (0.3536, 0.3536, 0.0)
-- Segment 3 end: (-0.5, 0.0, 0.0)
+- Segment 0 start:  ( 0.5000, 0.0,  0.0000) at θ =   0°
+- Segment 0 end:    ( 0.3536, 0.0,  0.3536) at θ =  45°
+- Segment 1 end:    ( 0.0000, 0.0,  0.5000) at θ =  90°
+- Segment 2 end:    (-0.3536, 0.0,  0.3536) at θ = 135°
+- Segment 3 end:    (-0.5000, 0.0,  0.0000) at θ = 180°
 - All segment radii: 0.001 m
 - Arc length of each segment: π×0.5/4 = 0.3927 m
 
 **Tolerance:** Endpoint coordinates to 4 decimal places (0.0001 m).
+Note: Corrected in revision 0.2. Earlier draft incorrectly placed the arc in the XY plane. See math.md Section 7.
 
 ---
 
