@@ -3,7 +3,7 @@
 **Project:** Arcanum  
 **Document:** `docs/phase1-geometry/validation.md`  
 **Status:** DRAFT  
-**Revision:** 0.1
+**Revision:** 0.2
 
 ---
 
