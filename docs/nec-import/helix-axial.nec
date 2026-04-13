@@ -1,0 +1,92 @@
+CM ============================================================
+CM Arcanum Reference Deck — Axial-Mode Helix Over Ground Plane
+CM V-REAL-003 in docs/nec-import/validation.md
+CM ============================================================
+CM 5-turn axial-mode helix over PEC ground plane.
+CM This is ORI's primary use case — ground station helix antenna
+CM for satellite communication.
+CM
+CM This deck exercises the full CMoM advantage:
+CM   - GH card (helix geometry) exercises curved-segment parsing
+CM   - GN card (PEC ground) exercises Phase 1 image generation
+CM   - The helix is precisely where CMoM outperforms NEC-2
+CM
+CM Geometry:
+CM   Frequency:      300 MHz  (lambda = 1.0 m)
+CM   Turns:          5
+CM   Circumference:  1.0 m    (C = lambda, axial mode condition)
+CM   Radius:         C/(2*pi) = 0.15915 m
+CM   Pitch (S):      0.25 m   (S = lambda/4, typical axial mode)
+CM   Total length:   5 * 0.25 = 1.25 m
+CM   Wire radius:    0.001 m
+CM   Segments:       40 total (8 per turn)
+CM   Helix axis:     z-axis, starting at z = 0 (ground plane)
+CM
+CM Axial mode condition: 0.75 < C/lambda < 1.33
+CM   C/lambda = 1.0 — center of axial mode range. Good.
+CM
+CM Source:
+CM   Delta-gap at helix feed (tag 1, segment 1)
+CM   Feed point is at z = 0, on the ground plane
+CM
+CM Expected results (Kraus approximations, Phase 4 V-HEL-001):
+CM   Gain:  G ≈ 6.2 * N * (C/lambda)^2 * (S/lambda)
+CM        = 6.2 * 5 * 1.0 * 0.25 = 7.75 ≈ 8.9 dBi
+CM   HPBW:  ≈ 52 / sqrt(N * C/lambda) = 52 / sqrt(5) ≈ 23 degrees
+CM   Z_in:  ≈ 140 * (C/lambda) = 140 Ω (resistive, near-resonant)
+CM   Polarization: right-hand circular (RHCP)
+CM   Axial ratio: AR ≈ 1 over main beam
+CM
+CM Tolerance: Arcanum result should be within 20-30% of Kraus values.
+CM   Kraus formulas are engineering approximations, not exact.
+CM   See phase4-postprocessing/validation.md V-HEL-001 for
+CM   pass/fail criteria.
+CM
+CM Ground plane:
+CM   GN 1 = PEC ground plane
+CM   GE 1 = geometry end with ground plane flag
+CM   Phase 1 will generate image segments (40 additional segments)
+CM   Total segments after image generation: 80
+CM
+CM CMoM vs NEC-2 comparison:
+CM   This deck is also used for V-HEL-002 (CMoM vs polygon).
+CM   Run once with Arcanum CMoM (default), once with straight-segment
+CM   approximation, and compare against high-N reference solution.
+CM   CMoM must outperform straight segments at 8 segments/turn.
+CM
+CM Provenance: Synthesized by ORI for Arcanum validation.
+CM   Parameters chosen to match axial mode conditions exactly.
+CM   Ground plane configuration matches ORI ground station use case.
+CM   Kraus formulas from: Kraus, J.D., Antennas, Chapter 7.
+CE
+CM ============================================================
+CM GEOMETRY
+CM ============================================================
+CM Tag 1: 5-turn axial-mode helix
+CM   GH format: tag, segments, pitch(m), total_length(m),
+CM              radius_start(m), radius_end(m), wire_radius(m)
+CM   Uniform helix: radius_start = radius_end = 0.15915 m
+GH 1 40 0.25 1.25 0.15915 0.15915 0.001
+CM
+CM PEC ground plane at z = 0
+CM Phase 1 will reflect helix segments through z = 0
+GN 1
+GE 1
+CM ============================================================
+CM SIMULATION PARAMETERS
+CM ============================================================
+CM Delta-gap voltage source at helix feed (tag 1, segment 1)
+EX 0 1 1 0 1.0 0.0
+CM
+CM Frequency: 300 MHz
+FR 0 1 0 0 299.792458 0.0
+CM
+CM Frequency sweep near design frequency (uncomment to use)
+CM FR 0 11 0 0 250.0 10.0
+CM
+CM Far-field pattern, upper hemisphere only (ground plane present)
+CM theta: 0 to 90 degrees (upper hemisphere), 5 degree steps
+CM phi:   0 to 360 degrees, 5 degree steps
+RP 0 19 73 1000 0.0 0.0 5.0 5.0 0.0
+CM
+EN

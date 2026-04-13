@@ -1,0 +1,124 @@
+CM ============================================================
+CM Arcanum Reference Deck — ORI Dumbbell Antenna
+CM ============================================================
+CM Compact meander-loaded HF dipole designed by Open Research Institute.
+CM Shortened dipole using non-inductive meander loading sections.
+CM Primary design frequency: 14.2 MHz (20m band).
+CM
+CM Geometry (derived from MATLAB Antenna Toolbox model, dumbbell.m):
+CM   Radiating section per arm: lambda/6 = 3.5187 m
+CM   Meander loading section per arm: 5 humps
+CM   Hump height (NotchWidth):     0.3265 m
+CM   Hump width  (NotchLength):    0.0254 m (1 inch)
+CM   Wire radius:                  0.001312 m (~AWG 8)
+CM   Total wire per arm (radiating + loading): 7.0374 m
+CM   Total tip-to-tip span:        7.5454 m (including meander z-extent)
+CM
+CM Meander pattern: flat, in x-z plane. Main arm along z-axis.
+CM   Loading humps alternate +x/-x from z-axis, 5 humps per arm.
+CM   Each hump: +/-x NotchWidth, +z NotchLength, -/+x NotchWidth, +z NotchLength.
+CM
+CM Reference: dumbbell repository, Open Research Institute.
+CM   https://github.com/openresearchinstitute/dumbbell
+CM   MATLAB model: HF_antenna/MATLAB_model_and_results/dumbbell.m
+CM   Field test data: HF_antenna/Washington_DC_efforts/
+CM
+CM Arcanum validation use:
+CM   Phase 1: dense junction network — 42 wires, 80 junctions
+CM   Phase 3: input impedance sweep 7-28 MHz vs MATLAB/NEDA results
+CM   Phase 4: pattern vs NEDA measurement data
+CM
+CM Note on coaxial feed cable: The Washington DC field tests used
+CM   LMR-400 coax, 23.8 m, Z0=50 ohm. Coax modeling requires TL cards
+CM   which are deferred in Arcanum initial scope. See bibliography.md.
+CM
+CM Expected results at 14.2 MHz (from MATLAB wireStack model):
+CM   Input impedance: consult dumbbell.m impedance() output
+CM   Pattern: broadside dipole-like, modified by meander loading
+CM   Efficiency: near unity (PEC model, no ohmic loss)
+CM
+CM Provenance: ORI original design. Open source.
+CE
+CM ============================================================
+CM GEOMETRY
+CM ============================================================
+CM Tag 1:  Upper radiating arm (z = 0 to +3.5187 m, 4 segments)
+GW 1 4 0.0 0.0 0.0 0.0 0.0 3.5187 0.001312
+CM
+CM Tags 2-21: Upper meander loading section (5 humps x 4 wires)
+CM Hump 1 (+x direction)
+GW 2  1  0.0000  0.0  3.5187  0.3265  0.0  3.5187  0.001312
+GW 3  1  0.3265  0.0  3.5187  0.3265  0.0  3.5441  0.001312
+GW 4  1  0.3265  0.0  3.5441  0.0000  0.0  3.5441  0.001312
+GW 5  1  0.0000  0.0  3.5441  0.0000  0.0  3.5695  0.001312
+CM Hump 2 (-x direction)
+GW 6  1  0.0000  0.0  3.5695 -0.3265  0.0  3.5695  0.001312
+GW 7  1 -0.3265  0.0  3.5695 -0.3265  0.0  3.5949  0.001312
+GW 8  1 -0.3265  0.0  3.5949  0.0000  0.0  3.5949  0.001312
+GW 9  1  0.0000  0.0  3.5949  0.0000  0.0  3.6203  0.001312
+CM Hump 3 (+x direction)
+GW 10 1  0.0000  0.0  3.6203  0.3265  0.0  3.6203  0.001312
+GW 11 1  0.3265  0.0  3.6203  0.3265  0.0  3.6457  0.001312
+GW 12 1  0.3265  0.0  3.6457  0.0000  0.0  3.6457  0.001312
+GW 13 1  0.0000  0.0  3.6457  0.0000  0.0  3.6711  0.001312
+CM Hump 4 (-x direction)
+GW 14 1  0.0000  0.0  3.6711 -0.3265  0.0  3.6711  0.001312
+GW 15 1 -0.3265  0.0  3.6711 -0.3265  0.0  3.6965  0.001312
+GW 16 1 -0.3265  0.0  3.6965  0.0000  0.0  3.6965  0.001312
+GW 17 1  0.0000  0.0  3.6965  0.0000  0.0  3.7219  0.001312
+CM Hump 5 (+x direction)
+GW 18 1  0.0000  0.0  3.7219  0.3265  0.0  3.7219  0.001312
+GW 19 1  0.3265  0.0  3.7219  0.3265  0.0  3.7473  0.001312
+GW 20 1  0.3265  0.0  3.7473  0.0000  0.0  3.7473  0.001312
+GW 21 1  0.0000  0.0  3.7473  0.0000  0.0  3.7727  0.001312
+CM
+CM Tag 22: Lower radiating arm (z = 0 to -3.5187 m, 4 segments)
+GW 22 4  0.0  0.0  0.0  0.0  0.0 -3.5187  0.001312
+CM
+CM Tags 23-42: Lower meander loading section (mirror of upper)
+CM Hump 1 (+x direction, -z)
+GW 23 1  0.0000  0.0 -3.5187  0.3265  0.0 -3.5187  0.001312
+GW 24 1  0.3265  0.0 -3.5187  0.3265  0.0 -3.5441  0.001312
+GW 25 1  0.3265  0.0 -3.5441  0.0000  0.0 -3.5441  0.001312
+GW 26 1  0.0000  0.0 -3.5441  0.0000  0.0 -3.5695  0.001312
+CM Hump 2 (-x direction, -z)
+GW 27 1  0.0000  0.0 -3.5695 -0.3265  0.0 -3.5695  0.001312
+GW 28 1 -0.3265  0.0 -3.5695 -0.3265  0.0 -3.5949  0.001312
+GW 29 1 -0.3265  0.0 -3.5949  0.0000  0.0 -3.5949  0.001312
+GW 30 1  0.0000  0.0 -3.5949  0.0000  0.0 -3.6203  0.001312
+CM Hump 3 (+x direction, -z)
+GW 31 1  0.0000  0.0 -3.6203  0.3265  0.0 -3.6203  0.001312
+GW 32 1  0.3265  0.0 -3.6203  0.3265  0.0 -3.6457  0.001312
+GW 33 1  0.3265  0.0 -3.6457  0.0000  0.0 -3.6457  0.001312
+GW 34 1  0.0000  0.0 -3.6457  0.0000  0.0 -3.6711  0.001312
+CM Hump 4 (-x direction, -z)
+GW 35 1  0.0000  0.0 -3.6711 -0.3265  0.0 -3.6711  0.001312
+GW 36 1 -0.3265  0.0 -3.6711 -0.3265  0.0 -3.6965  0.001312
+GW 37 1 -0.3265  0.0 -3.6965  0.0000  0.0 -3.6965  0.001312
+GW 38 1  0.0000  0.0 -3.6965  0.0000  0.0 -3.7219  0.001312
+CM Hump 5 (+x direction, -z)
+GW 39 1  0.0000  0.0 -3.7219  0.3265  0.0 -3.7219  0.001312
+GW 40 1  0.3265  0.0 -3.7219  0.3265  0.0 -3.7473  0.001312
+GW 41 1  0.3265  0.0 -3.7473  0.0000  0.0 -3.7473  0.001312
+GW 42 1  0.0000  0.0 -3.7473  0.0000  0.0 -3.7727  0.001312
+CM
+GE 0
+CM ============================================================
+CM SIMULATION PARAMETERS
+CM ============================================================
+CM Delta-gap voltage source at feed point (tag 1, segment 1)
+EX 0 1 1 0 1.0 0.0
+CM
+CM Primary design frequency
+FR 0 1 0 0 14.2 0.0
+CM
+CM Frequency sweep 7-28 MHz (uncomment for sweep analysis)
+CM FR 0 22 0 0 7.0 1.0
+CM
+CM Best SWR frequency from Washington DC field test (uncomment to use)
+CM FR 0 1 0 0 23.65 0.0
+CM
+CM Far-field radiation pattern, 5 degree grid
+RP 0 37 73 1000 0.0 0.0 5.0 5.0 0.0
+CM
+EN

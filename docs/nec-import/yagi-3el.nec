@@ -1,0 +1,69 @@
+CM ============================================================
+CM Arcanum Reference Deck — 3-Element Yagi-Uda
+CM V-REAL-002 in docs/nec-import/validation.md
+CM ============================================================
+CM Classic 3-element Yagi-Uda: reflector, driven element, director.
+CM Tests multi-wire parsing, tag uniqueness, and source referencing
+CM across a more complex geometry than the half-wave dipole.
+CM
+CM Geometry:
+CM   Frequency:    300 MHz  (lambda = 1.0 m)
+CM   Elements along x-axis (horizontal, perpendicular to boom)
+CM   Boom along z-axis
+CM   Wire radius:  0.001 m (all elements)
+CM   9 segments per element
+CM
+CM Element dimensions (from classical 3-element Yagi design tables):
+CM   Reflector:      0.500 m total (0.250 m each side)  at z =  0.00 m
+CM   Driven element: 0.473 m total (0.2365 m each side) at z =  0.25 m
+CM   Director:       0.440 m total (0.220 m each side)  at z =  0.56 m
+CM
+CM Spacings:
+CM   Reflector  -> Driven:   0.25 m (lambda/4)
+CM   Driven     -> Director: 0.31 m (0.31 lambda)
+CM
+CM Source:
+CM   Delta-gap voltage source on driven element (tag 2, segment 5)
+CM   Segment 5 is the center of a 9-segment element
+CM
+CM Expected results (Phase 3/4):
+CM   Single main beam in forward direction (+z, toward director)
+CM   Front-to-back ratio > 10 dB
+CM   Gain approximately 7-8 dBd (9-10 dBi)
+CM   Input impedance: approximately 20-30 + j0 Ω near resonance
+CM   (driven element slightly short of resonance by design)
+CM
+CM Pass criterion for V-REAL-002:
+CM   3 wires parsed, correct segment counts, source on tag 2 only,
+CM   all tags unique and correctly mapped in tag registry.
+CM
+CM Provenance: Synthesized by ORI for Arcanum validation.
+CM   Dimensions from classical Yagi design tables (Kraus, Antennas).
+CM   Compatible with NEC-2 and EZNEC for cross-validation.
+CE
+CM ============================================================
+CM GEOMETRY
+CM ============================================================
+CM Tag 1: Reflector — 0.500 m total, at z = 0.00 m
+GW 1 9 -0.250 0.0 0.00 0.250 0.0 0.00 0.001
+CM Tag 2: Driven element — 0.473 m total, at z = 0.25 m
+GW 2 9 -0.2365 0.0 0.25 0.2365 0.0 0.25 0.001
+CM Tag 3: Director — 0.440 m total, at z = 0.56 m
+GW 3 9 -0.220 0.0 0.56 0.220 0.0 0.56 0.001
+GE 0
+CM ============================================================
+CM SIMULATION PARAMETERS
+CM ============================================================
+CM Delta-gap voltage source on driven element (tag 2, segment 5)
+EX 0 2 5 0 1.0 0.0
+CM
+CM Frequency: 300 MHz
+FR 0 1 0 0 299.792458 0.0
+CM
+CM Frequency sweep 200-400 MHz to observe bandwidth (uncomment to use)
+CM FR 0 21 0 0 200.0 10.0
+CM
+CM Far-field radiation pattern, 5 degree grid
+RP 0 37 73 1000 0.0 0.0 5.0 5.0 0.0
+CM
+EN

@@ -1,0 +1,55 @@
+CM ============================================================
+CM Arcanum Reference Deck — Half-Wave Dipole
+CM V-REAL-001 in docs/nec-import/validation.md
+CM ============================================================
+CM Classic center-fed half-wave dipole in free space.
+CM This is the foundational validation case for Arcanum.
+CM If this deck does not parse and simulate correctly,
+CM nothing else is worth testing.
+CM
+CM Geometry:
+CM   Frequency:    300 MHz  (lambda = 1.0 m)
+CM   Total length: 0.5 m    (lambda/2)
+CM   Each arm:     0.25 m
+CM   Wire radius:  0.001 m  (1 mm)
+CM   Segments:     11 (odd, so center segment is segment 6)
+CM   Orientation:  z-axis, center at origin
+CM
+CM Source:
+CM   Delta-gap voltage source, tag 1, segment 6, 1V
+CM   Segment 6 is the center segment — spans z = 0 approximately
+CM
+CM Expected results (Phase 3 validation, V-SOLVE-003):
+CM   Input impedance: Z_in ≈ 73 + j42.5 Ω (classical thin-wire result)
+CM   Tolerance: ±5 Ω on both real and imaginary parts
+CM   Note: reactance sensitive to exact length and radius
+CM
+CM Expected results (Phase 4 validation, V-PAT-001, V-DIR-002):
+CM   E-plane pattern: F(theta) = cos(pi/2 * cos(theta)) / sin(theta)
+CM   H-plane pattern: omnidirectional
+CM   Maximum directivity: 1.64 (2.15 dBi)
+CM
+CM Provenance: Synthesized by ORI for Arcanum validation.
+CM   Parameters chosen to match V-REAL-001 conditions exactly.
+CM   Classical result from Balanis, Antenna Theory, Chapter 4.
+CE
+CM ============================================================
+CM GEOMETRY
+CM ============================================================
+CM Tag 1: Half-wave dipole along z-axis, 11 segments
+CM   From z = -0.25 m to z = +0.25 m
+GW 1 11 0.0 0.0 -0.25 0.0 0.0 0.25 0.001
+GE 0
+CM ============================================================
+CM SIMULATION PARAMETERS
+CM ============================================================
+CM Delta-gap voltage source at center segment (tag 1, segment 6)
+EX 0 1 6 0 1.0 0.0
+CM
+CM Frequency: 300 MHz = c/lambda = 299.792458 MHz/m * 1m
+FR 0 1 0 0 299.792458 0.0
+CM
+CM Far-field radiation pattern, 5 degree grid, full sphere
+RP 0 37 73 1000 0.0 0.0 5.0 5.0 0.0
+CM
+EN
