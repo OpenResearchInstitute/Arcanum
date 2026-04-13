@@ -3,7 +3,7 @@
 **Project:** Arcanum  
 **Document:** `docs/references/bibliography.md`  
 **Status:** DRAFT  
-**Revision:** 0.1
+**Revision:** 0.2
 
 ---
 
@@ -69,7 +69,56 @@ Lawrence Livermore National Laboratory, UCRL-MA-109338, 1992.
 
 ---
 
-## 4. Exact Kernel and Conformal MoM
+## 4. Boundary Element Methods — Ghent University Group
+
+### Cools, K., Bogaert, I., Fostier, J., Peeters, J., Vande Ginste, D., Rogier, H., and De Zutter, D.
+"Accurate and Efficient Algorithms for Boundary Element Methods in Electromagnetic Scattering — A Tribute to the Work of Professor F. Olyslager"  
+*Radio Science*, draft manuscript, Ghent University, January 2012.  
+**Role:** Overview of BEM/MoM research at Ghent University's Electromagnetics Group. Covers conformal discretization schemes for surface current methods (EFIE/MFIE), MLFMA, and parallel algorithms. The "conformal" discussed here refers to conforming finite element spaces for surface mesh BEM — distinct from Arcanum's curved wire segment CMoM. Included as background on the Ghent group and the broader conformal discretization literature.  
+**Note:** This is NOT a wire antenna CMoM reference. The foundational curved-wire CMoM papers are Champagne et al. (1992) and Rogers & Butler (2001) — see Section 5 below. The original SOW reference to "Vande Ginste et al." for conformal wire MoM was incorrect and has been resolved.  
+**Cited in:** bibliography.md (background context)
+
+---
+
+## 5. Curved Wire MoM — Foundational References
+
+These are the papers on which Tony Golden's CMoM implementation in AN-SOF is based, as identified from his 2020 white paper (Section 7 below). They are the primary foundational references for Arcanum's Phase 2 matrix fill.
+
+### Champagne, N.J. II, Williams, J.T., and Wilton, D.R.
+"The Use of Curved Segments for Numerically Modeling Thin Wire Antennas and Scatterers"  
+*IEEE Transactions on Antennas and Propagation*, Vol. 40, No. 6, pp. 682–689, June 1992.  
+DOI: 10.1109/8.144597  
+**Role:** The foundational paper introducing curved (conformal) segments for wire antenna MoM. Replaces straight-segment approximation with parametric curved segments, resolving the geometric modeling error for helices, loops, and arcs. This is the direct precursor to Arcanum's CMoM approach and is cited as reference [12] in Tony Golden's 2020 white paper.  
+**Cited in:** phase2-matrix-fill/math.md, phase2-matrix-fill/design.md, sow.md
+
+---
+
+### Rogers, S.D. and Butler, C.M.
+"An Efficient Curved-Wire Integral Equation Solution Technique"  
+*IEEE Transactions on Antennas and Propagation*, Vol. 49, No. 1, pp. 70–79, January 2001.  
+DOI: 10.1109/8.910530  
+**Role:** Efficient implementation of the curved-wire integral equation. Develops practical quadrature strategies for the curved segment MoM, directly relevant to Phase 2's matrix fill implementation. Cited as reference [13] in Tony Golden's 2020 white paper alongside Champagne et al.  
+**Cited in:** phase2-matrix-fill/math.md, phase2-matrix-fill/design.md
+
+---
+
+### Popovic, B.D. and Kolundzija, B.M.
+*Analysis of Metallic Antennas and Scatterers*  
+The Institution of Electrical Engineers, London, UK, 1994.  
+**Role:** Comprehensive MoM reference for both wire and surface antenna analysis. Tony Golden cites this as reference [10] in his 2020 white paper as a primary MoM reference alongside Harrington. Directly relevant to the EFIE formulation and discretization strategy used in Arcanum.  
+**Cited in:** phase2-matrix-fill/math.md (background)
+
+---
+
+### Song, J.M. and Chew, W.C.
+"Moment Method Solutions Using Parametric Geometry"  
+*Journal of Electromagnetic Waves and Applications*, Vol. 9, No. 1/2, pp. 71–83, January–February 1995.  
+**Role:** Parametric geometry formulation for MoM — the mathematical framework for describing curved wire geometry as a parametric function, which underlies the conformal segment approach. Cited as reference [11] in Tony Golden's 2020 white paper.  
+**Cited in:** phase2-matrix-fill/math.md (background)
+
+---
+
+## 6. Exact Kernel
 
 ### Fikioris, G. and Wu, T.T.
 "On the Application of Numerical Methods to Hallén's Equation"  
@@ -89,17 +138,18 @@ DOI: 10.1109/TAP.2006.877170
 
 ---
 
-### Vande Ginste, D., Franchois, A., and De Zutter, D.
-"A Broadband Equivalent Transmission Line Model for the Analysis of Shielded Coaxial Cables"  
-*IEEE Transactions on Advanced Packaging*, Vol. 30, No. 2, pp. 218–226, May 2007.  
-DOI: 10.1109/TADVP.2007.896000  
-**Note:** Cite the Vande Ginste et al. paper directly relevant to conformal MoM wire formulations — the specific paper referenced in the SOW should be identified and this entry updated with the correct title and DOI. The above is a placeholder entry.  
-**Status:** ⚠ INCOMPLETE — correct paper citation required before this document is marked final.  
-**Cited in:** sow.md
+## 7. Golden Engineering White Paper
+
+### Golden, T.
+"Equivalent Wire-Grids for the Electromagnetic Modeling of Conducting Surfaces"  
+Golden Engineering R&D, July 2020. Public Domain Mark 1.0.  
+Available: https://archive.org/details/an-sof-equivalent-wire-grids  
+**Role:** Tony Golden's own technical paper describing the CMoM implementation underlying AN-SOF. Establishes the Curvilinear Method of Moments (CMoM) framework for wire-grid surface modeling, derives the equivalent radius formula, and validates against NEC-2. The reference list in this paper (particularly references [10]–[13]) identifies the foundational curved-wire MoM literature on which AN-SOF's engine is based — and therefore on which Arcanum's Phase 2 is based. Key citations: Champagne et al. [12], Rogers & Butler [13], Popovic & Kolundzija [10], Song & Chew [11].  
+**Cited in:** bibliography.md (provenance of foundational references)
 
 ---
 
-## 5. Ground Models
+## 8. Ground Models
 
 ### Wait, J.R.
 *Electromagnetic Waves in Stratified Media*, 2nd Edition  
@@ -110,7 +160,7 @@ ISBN: 978-0080165912
 
 ---
 
-## 6. Numerical Methods
+## 9. Numerical Methods
 
 ### Abramowitz, M. and Stegun, I.A.
 *Handbook of Mathematical Functions*  
@@ -130,7 +180,7 @@ ISBN: 978-0521880688
 
 ---
 
-## 7. Software and Crates
+## 10. Software and Crates
 
 ### faer
 Rust dense linear algebra library.  
@@ -176,7 +226,7 @@ Crates.io: https://crates.io/crates/pyo3
 
 ---
 
-## 8. NEC Reference Decks
+## 11. NEC Reference Decks
 
 The following NEC input deck collections are used as reference material for the `docs/nec-import/reference-decks/` test suite.
 
@@ -200,24 +250,50 @@ Available: https://www.eznec.com
 *ORI Arcanum Reference Decks*  
 Synthesized by ORI contributors for Arcanum validation.  
 Repository: `docs/nec-import/reference-decks/ori/`  
-**Role:** ORI-specific antenna models purpose-built for Arcanum validation, including ORI's own antenna designs. Parameters chosen to match test conditions in `docs/nec-import/validation.md` and `docs/phase4-postprocessing/validation.md`. Provenance: ORI original work.  
+**Role:** ORI-specific antenna models purpose-built for Arcanum validation. Parameters derived from ORI's own antenna designs and modeling work. Provenance: ORI original work.  
 **Planned decks:**
 - `half-wave-dipole.nec` — standard half-wave dipole, Phase 3/4 validation
 - `yagi-3el.nec` — 3-element Yagi-Uda, pattern validation
 - `helix-axial.nec` — 5-turn axial-mode helix over ground, ORI primary use case
-- Additional ORI-specific antenna designs (see GitHub Discussions)
+- `dumbbell-ori.nec` — ORI Dumbbell compact meander-loaded HF dipole (see below)
 
 ---
 
-## 9. Open Items
+### Thompson, M. et al. (Open Research Institute)
+*ORI Dumbbell Antenna — Compact Meander-Loaded HF Dipole*  
+Open Research Institute, 2023. Repository: https://github.com/openresearchinstitute/dumbbell  
+**Role:** ORI's compact HF antenna design using non-inductive meander loading sections to shorten a half-wave dipole. The radiating element is λ/6 on each side; the remaining wire is folded into 5 meander humps per arm wound around a cylindrical cowling. Primary design frequency 14.2 MHz (20m band); tested across 7–28 MHz. Field test data (SWR measurements) from Washington DC testing by Samudra Haque's team provides real measured performance to compare against. MATLAB Antenna Toolbox model (`dumbbell.m`) provides exact geometric parameters.
+
+The Arcanum reference deck (`dumbbell-ori.nec`) is derived directly from the MATLAB model parameters:
+- radiatorLength = λ/6 = 3.5187 m per arm
+- NotchWidth (hump height) = 0.3265 m
+- NotchLength (hump width) = 0.0254 m (1 inch)
+- Wire radius = 0.001312 m
+
+The dumbbell is a complementary test case to the helix: it is a pure straight-segment (GW) structure with dense junctions — 42 wires, approximately 80 junction points. It exercises Phase 1 junction handling and connectivity, Phase 3 impedance over a multi-band sweep, and Phase 4 pattern comparison against NEDA measurement data.
+
+**Why this is a compelling ORI reference deck:**
+- Pure wire structure — no dielectrics, no patches
+- Dense junction network tests Phase 1 at scale
+- Real measured SWR data exists for validation
+- ORI's own design with full provenance
+- Complementary to helix: straight-segment dense-junction vs curved-segment sparse-junction
+
+**Cited in:** nec-import/validation.md (V-REAL reference decks), phase4-postprocessing/validation.md
+
+---
+
+## 12. Open Items
 
 The following bibliography entries are incomplete and must be resolved before the document is marked final:
 
-1. **Vande Ginste et al. CMoM paper** — the specific paper on conformal MoM wire formulations referenced in the SOW must be properly identified and the entry in Section 4 updated with the correct title, journal, and DOI. 
+1. **Fikioris singularity extraction** — confirm that the 2001 IEEE TAP paper (Section 6) contains the specific self-impedance extraction formula needed for Phase 2 implementation. If a different Fikioris paper contains the relevant formula, add that entry and update the citation in `phase2-matrix-fill/math.md`. This is the Phase 2 implementation gate item.
 
-2. **Fikioris singularity extraction** — confirm that the 2001 IEEE TAP paper (Section 4) contains the specific self-impedance extraction formula needed for Phase 2 implementation. If a different Fikioris paper contains the relevant formula, add that entry and update the citation in `phase2-matrix-fill/math.md`. There are several different versions floating around. 
+2. **NEC-2 distribution deck inventory** — identify the specific decks in the NEC-2 distribution that will serve as Tier 1 reference decks and list them here with deck names and antenna types.
 
-3. **NEC-2 distribution deck inventory** — identify the specific decks in the NEC-2 distribution that will serve as Tier 1 reference decks and list them here with deck names and antenna types. 
+**Resolved items:**
+
+- ~~Vande Ginste et al. CMoM wire reference~~ — Resolved. The correct foundational curved-wire MoM references are Champagne, Williams, Wilton (1992) and Rogers & Butler (2001), identified from Tony Golden's 2020 white paper. The SOW's reference to "Vande Ginste et al." for conformal wire MoM was incorrect. Section 5 has been updated accordingly.
 
 ---
 
