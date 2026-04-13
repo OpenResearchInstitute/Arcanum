@@ -19,9 +19,9 @@ Find #antenna-design channel on ORI Slack after securing an invitation (see link
 
 The Method of Moments (MoM) is the foundational numerical technique for wire antenna simulation. The dominant open source implementation, NEC-2, was released into the public domain by Lawrence Livermore National Laboratory and remains the engine underlying most accessible antenna modeling tools. However, NEC-2 uses straight wire segments and a thin-wire kernel approximation, which introduces systematic errors in the following categories. 
 
-- Curved antennas (helics, loops, spirals)
-- Closely spaced parallel wires (open-wire transmission lines, tightly wound helics)
-- Thick conductors (if the wire radius a significant fraction of segment length)
+- Curved antennas (helices, loops, spirals)
+- Closely spaced parallel wires (open-wire transmission lines, tightly wound helices)
+- Thick conductors (if the wire radius is a significant fraction of segment length)
 - Bent wires at acute angles (segment-to-segment near-field interaction artifacts makes a mess)
 
 The Conformal Method of Moments (CMoM) with Exact Kernel addresses all of these limitations. It replaces straight segments with curved conformal segments that follow the actual wire geometry, and replaces the thin-wire kernel with the full cylindrical surface integral, evaluated with a technique called adaptive numerical quadrature.
@@ -331,10 +331,11 @@ cmom-engine/
 
 Key reference materials for citations and review. Thank you to Microwave Update for the list. 
 
+- Champagne, Williams & Wilton — *The Use of Curved Segments for Numerically Modeling Thin Wire Antennas* (1992) — foundational curved-wire MoM
+- Rogers & Butler — *An Efficient Curved-Wire Integral Equation Solution Technique* (2001) — CMoM implementation
 - Harrington, R.F. — *Field Computation by Moment Methods* (1968) — foundational MoM text
 - Burke & Poggio — *NEC-2 Method of Moments Code* (1981) — NEC-2 reference implementation
 - Fikioris, G. — exact kernel formulations for cylindrical antennas
-- Vande Ginste et al. — higher-order and conformal MoM formulations
 - Kraus, J.D. — *Antennas* — validation reference for helix and loop cases
 - King & Middleton — thin dipole impedance analytic results
 - Wait, J.R. — ground loss models for LF/MF antennas
