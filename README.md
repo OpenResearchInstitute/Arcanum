@@ -291,38 +291,109 @@ docs/
 
 ---
 
-## 7. Repository Structure (Design Phase)
+## 7. Repository Structure
 
 ```
-cmom-engine/
-├── README.md                        This document
+Arcanum/
+├── README.md                               This document
 ├── LICENSE
+├── Cargo.toml                              Cargo workspace root (no code)
+├── pyproject.toml                          maturin build config for Python package
+│
+├── crates/                                 One Rust crate per computational phase
+│   ├── arcanum-nec-import/                 NEC deck parser — rlib, no external deps
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                      pub fn parse(), pub fn parse_file()
+│   │       ├── cards.rs                    NecCard enum and all card structs
+│   │       ├── lexer.rs                    Stage 1: raw text → ParsedDeck
+│   │       ├── router.rs                   Stage 2: ParsedDeck → SimulationInput
+│   │       ├── tag_registry.rs             Tag → wire index + segment count map
+│   │       ├── errors.rs                   ParseError, ParseWarnings
+│   │       └── tests/                      Rust unit tests (V-PARSE, V-FMT, V-ROUTE,
+│   │           └── ...                       V-ERR, V-WARN from validation.md)
+│   │
+│   ├── arcanum-geometry/                   Phase 1: geometry discretization — rlib
+│   │   ├── Cargo.toml                      deps: arcanum-nec-import, nalgebra
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       └── tests/
+│   │
+│   ├── arcanum-matrix-fill/                Phase 2: impedance matrix fill — rlib
+│   │   ├── Cargo.toml                      deps: arcanum-geometry, rayon, gauss-quad
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       └── tests/
+│   │
+│   ├── arcanum-matrix-solve/               Phase 3: LU solve + excitation — rlib
+│   │   ├── Cargo.toml                      deps: arcanum-matrix-fill, faer
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       └── tests/
+│   │
+│   ├── arcanum-postprocess/                Phase 4: patterns and near fields — rlib
+│   │   ├── Cargo.toml                      deps: arcanum-matrix-solve, nalgebra
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       └── tests/
+│   │
+│   └── arcanum-py/                         PyO3 bindings — cdylib (Python extension)
+│       ├── Cargo.toml                      deps: all five crates above, pyo3
+│       └── src/
+│           └── lib.rs                      #[pymodule], #[pyfunction], #[pyclass] wrappers
+│
+├── python/
+│   └── arcanum/                            Python package (installed alongside extension)
+│       ├── __init__.py                     Imports compiled extension, re-exports symbols
+│       ├── nec_import.py                   Python helpers and type stubs for nec-import
+│       ├── geometry.py                     Phase 1 helpers [future]
+│       ├── matrix_fill.py                  Phase 2 helpers [future]
+│       ├── matrix_solve.py                 Phase 3 helpers [future]
+│       └── postprocess.py                  Phase 4 helpers [future]
+│
+├── tests/                                  Python integration tests (pytest, via PyO3)
+│   ├── conftest.py                         Top-level fixtures
+│   ├── nec_import/
+│   │   ├── conftest.py                     reference_deck() fixture
+│   │   ├── test_parse.py                   V-PARSE cases
+│   │   ├── test_fmt.py                     V-FMT cases
+│   │   ├── test_errors.py                  V-ERR cases
+│   │   ├── test_warnings.py                V-WARN cases
+│   │   └── test_real.py                    V-REAL-001 through V-REAL-004
+│   ├── geometry/                           Phase 1 tests [future]
+│   ├── matrix_fill/                        Phase 2 tests [future]
+│   ├── matrix_solve/                       Phase 3 tests [future]
+│   └── postprocess/                        Phase 4 tests [future]
+│
 ├── docs/
-│   |
 │   ├── nec-import/
-│   │   ├── design.md                 Parser architecture, card routing, error handling
-│   │   ├── card-reference.md         Supported cards with field definitions
-│   │   └── validation.md             Round-trip tests, known-good .nec reference decks
+│   │   ├── design.md                       Parser architecture, card routing, error handling
+│   │   ├── card-reference.md               Supported cards with field definitions
+│   │   ├── validation.md                   Test cases and reference deck specifications
+│   │   ├── plan.md                         Implementation plan
+│   │   └── reference-decks/               Known-good .nec files for V-REAL test cases
 │   ├── phase1-geometry/
-│   │   ├── design.md                 Wire format, segment types, junction handling
-│   │   ├── math.md                   Parametric curve representations
-│   │   └── validation.md             Geometric test cases
+│   │   ├── design.md                       Wire format, segment types, junction handling
+│   │   ├── math.md                         Parametric curve representations
+│   │   └── validation.md                   Geometric test cases
 │   ├── phase2-matrix-fill/
-│   │   ├── design.md                 Kernel formulation, quadrature strategy
-│   │   ├── math.md                   Exact kernel integral derivation
-│   │   └── validation.md             Impedance matrix test cases
+│   │   ├── design.md                       Kernel formulation, quadrature strategy
+│   │   ├── math.md                         Exact kernel integral derivation
+│   │   └── validation.md                   Impedance matrix test cases
 │   ├── phase3-matrix-solve/
-│   │   ├── design.md                 LU solver, excitation assembly
-│   │   ├── math.md                   EFIE formulation, excitation models
-│   │   └── validation.md             Dipole impedance, loop resistance
+│   │   ├── design.md                       LU solver, excitation assembly
+│   │   ├── math.md                         EFIE formulation, excitation models
+│   │   └── validation.md                   Dipole impedance, loop resistance
 │   ├── phase4-postprocessing/
-│   │   ├── design.md                 Field integrals, pattern computation
-│   │   ├── math.md                   Far-field and near-field formulas
-│   │   └── validation.md             Pattern shape, energy conservation
+│   │   ├── design.md                       Field integrals, pattern computation
+│   │   ├── math.md                         Far-field and near-field formulas
+│   │   └── validation.md                   Pattern shape, energy conservation
 │   └── references/
-│       └── bibliography.md           Key literature
-├── examples/                         Placeholder for future worked examples
-└── CONTRIBUTING.md
+│       └── bibliography.md                 Key literature
+│
+└── .github/
+    └── workflows/
+        └── ci.yml                          Rust tests + Python tests + lint on push/PR
 ```
 
 ---
