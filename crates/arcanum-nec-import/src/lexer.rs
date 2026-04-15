@@ -320,6 +320,30 @@ impl Tokens {
 
     // ── Required field readers ────────────────────────────────────────────
 
+    /// Parse a token as i32, accepting scientific-notation floats that are
+    /// whole numbers (e.g. "0.00000E+00" → 0). Some NEC generators write every
+    /// field in scientific notation, including integer fields.
+    fn parse_int_token(&self, token: &str, field_num: usize, field_name: &str)
+        -> Result<i32, ParseError>
+    {
+        if let Ok(v) = token.parse::<i32>() {
+            return Ok(v);
+        }
+        if let Ok(f) = token.parse::<f64>() {
+            if f.fract() == 0.0 && f >= i32::MIN as f64 && f <= i32::MAX as f64 {
+                return Ok(f as i32);
+            }
+        }
+        Err(ParseError::new(
+            ParseErrorKind::FieldParseFailure,
+            self.line_number,
+            format!(
+                "{} card: field {} ({}) cannot be parsed as integer: {:?}",
+                self.mnemonic, field_num, field_name, token
+            ),
+        ))
+    }
+
     /// Consume the next token and parse it as i32. Hard error if absent or
     /// unparseable.
     fn require_int(&mut self, field_name: &str) -> Result<i32, ParseError> {
@@ -334,16 +358,7 @@ impl Tokens {
                 ),
             )),
             Some(token) => {
-                let result = token.parse::<i32>().map_err(|_| {
-                    ParseError::new(
-                        ParseErrorKind::FieldParseFailure,
-                        self.line_number,
-                        format!(
-                            "{} card: field {} ({}) cannot be parsed as integer: {:?}",
-                            self.mnemonic, field_num, field_name, token
-                        ),
-                    )
-                });
+                let result = self.parse_int_token(token, field_num, field_name);
                 self.advance();
                 result
             }
@@ -407,16 +422,7 @@ impl Tokens {
             None => Ok(default),
             Some(token) => {
                 let field_num = self.next_field_number();
-                let result = token.parse::<i32>().map_err(|_| {
-                    ParseError::new(
-                        ParseErrorKind::FieldParseFailure,
-                        self.line_number,
-                        format!(
-                            "{} card: field {} cannot be parsed as integer: {:?}",
-                            self.mnemonic, field_num, token
-                        ),
-                    )
-                });
+                let result = self.parse_int_token(token, field_num, "(optional)");
                 self.advance();
                 result
             }

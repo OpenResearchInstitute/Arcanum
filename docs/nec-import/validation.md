@@ -307,6 +307,24 @@ Pass criterion: Parser handles CRLF without error or spurious field misreads. A 
 
 ---
 
+### V-FMT-006 — Scientific Notation in Integer Fields
+
+Some NEC generators (e.g. 4nec2) write every field in scientific notation, including fields that are semantically integers. The GM card's optional ITS (tag increment) field is the most common occurrence.
+
+**Input:**
+```
+GW 1 4 0.0 0.0 -0.25 0.0 0.0 0.25 0.001
+GM 0 0 0.0 0.0 45.0 0.0 0.0 0.0 0.00000E+00
+GE 0
+EN
+```
+
+**Pass criterion:** ITS field `0.00000E+00` is accepted as integer value 0. Parse succeeds with no errors. Result is identical to the same deck with `GM 0 0 0.0 0.0 45.0 0.0 0.0 0.0 0`.
+
+**Non-goal:** A value such as `1.5E+00` (non-whole float in an integer field) must still produce a `FieldParseFailure` error.
+
+---
+
 ## 5. Card Routing Cases (V-ROUTE)
 
 ### V-ROUTE-001 — Complete Deck, All Phases Receive Correct Data

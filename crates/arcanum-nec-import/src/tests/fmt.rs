@@ -86,3 +86,35 @@ fn v_fmt_005_crlf() {
     check_wire(&sim.mesh_input.wires);
     assert!(warnings.is_empty());
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V-FMT-006 — Scientific notation in integer fields
+// Some NEC generators (e.g. 4nec2) write every field in scientific notation,
+// including semantically-integer fields such as GM's ITS (tag increment).
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn v_fmt_006_sci_notation_integer_field() {
+    // ITS field written as "0.00000E+00" instead of "0".
+    let deck = concat!(
+        "GW 1 4 0.0 0.0 -0.25 0.0 0.0 0.25 0.001\n",
+        "GM 0 0 0.0 0.0 45.0 0.0 0.0 0.0 0.00000E+00\n",
+        "GE 0\n",
+        "EN\n",
+    );
+    let (sim, warnings) = parse(deck).expect("parse should succeed");
+    check_wire(&sim.mesh_input.wires);
+    assert!(warnings.is_empty());
+}
+
+#[test]
+fn v_fmt_006_non_whole_float_in_integer_field_is_error() {
+    // A float with a fractional part in an integer field must still be rejected.
+    let deck = concat!(
+        "GW 1 4 0.0 0.0 -0.25 0.0 0.0 0.25 0.001\n",
+        "GM 0 0 0.0 0.0 45.0 0.0 0.0 0.0 1.5E+00\n",
+        "GE 0\n",
+        "EN\n",
+    );
+    assert!(parse(deck).is_err());
+}

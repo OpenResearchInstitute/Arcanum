@@ -58,7 +58,7 @@ GW  1   10   0.0  0.0  -0.25   0.0  0.0  0.25   0.002
     ITAG NS   XW1 YW1   ZW1    XW2  YW2  ZW2    radius
 ```
 
-Integers must not contain a decimal point. Floats may use scientific notation (`1.5e-3`).
+Floats may use scientific notation (`1.5e-3`). Integer fields normally contain plain integers (`10`), but some NEC generators (e.g. 4nec2) write every field in scientific notation — including integers — producing values such as `0.00000E+00` for zero. The parser accepts integer fields in scientific notation provided the value is a whole number.
 
 ### 2.3 Comments
 
