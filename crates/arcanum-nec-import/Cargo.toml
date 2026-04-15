@@ -1,0 +1,12 @@
+[package]
+name = "arcanum-nec-import"
+version = "0.1.0"
+edition = "2021"
+description = "NEC input deck parser for Arcanum"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Intentionally empty — the parser has no external dependencies.
+# All logic is pure Rust standard library.

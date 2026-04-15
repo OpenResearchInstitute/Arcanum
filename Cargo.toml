@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "crates/arcanum-nec-import",
+    "crates/arcanum-geometry",
+    "crates/arcanum-matrix-fill",
+    "crates/arcanum-matrix-solve",
+    "crates/arcanum-postprocess",
+    "crates/arcanum-py",
+]
+resolver = "2"
+
+[workspace.dependencies]
+pyo3     = { version = "0.22", features = ["extension-module"] }
+nalgebra = "0.33"
+rayon    = "1.10"
+faer     = "0.19"

@@ -1,0 +1,24 @@
+# Rust build output
+target/
+
+# Python virtual environment
+.venv/
+
+# Compiled Python extension (produced by maturin develop)
+*.so
+*.pyd
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# pytest cache
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+*.egg-info/
+
+# AI-related files
+.claude

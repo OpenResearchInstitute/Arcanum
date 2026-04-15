@@ -1,0 +1,12 @@
+[package]
+name = "arcanum-matrix-solve"
+version = "0.1.0"
+edition = "2021"
+description = "Phase 3 — LU solve and excitation assembly for Arcanum"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+arcanum-matrix-fill = { path = "../arcanum-matrix-fill" }
+faer = { workspace = true }

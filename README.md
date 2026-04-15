@@ -426,4 +426,14 @@ The design phase is complete when:
 
 ---
 
+## 10. Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, build instructions,
+and how to run the test suite and linters.
+
+The NEC input deck format accepted by the parser is documented in
+[docs/nec-import/input-format.md](docs/nec-import/input-format.md).
+
+---
+
 *Document maintained by Open Research Institute. Contributions welcome under our participant and developer policies at https://www.openresearch.institute/developer-and-participant-policies/.*

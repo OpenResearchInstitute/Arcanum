@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Rust tests + Python integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create virtual environment
+        run: python -m venv .venv
+
+      - name: Install Python build and test dependencies
+        run: .venv/bin/pip install maturin pytest
+
+      - name: Run Rust unit tests (all workspace crates)
+        run: cargo test --workspace
+
+      - name: Build and install Python extension (maturin develop)
+        run: .venv/bin/maturin develop
+        env:
+          VIRTUAL_ENV: .venv
+
+      - name: Run Python integration tests
+        run: .venv/bin/pytest tests/ -v
+
+  lint:
+    name: Clippy + rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with clippy and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace -- -D warnings
