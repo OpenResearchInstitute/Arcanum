@@ -1,0 +1,12 @@
+[package]
+name = "arcanum-postprocess"
+version = "0.1.0"
+edition = "2021"
+description = "Phase 4 — Post-processing: patterns and near fields for Arcanum"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+arcanum-matrix-solve = { path = "../arcanum-matrix-solve" }
+nalgebra = { workspace = true }

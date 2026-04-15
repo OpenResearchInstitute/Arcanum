@@ -1,0 +1,12 @@
+[package]
+name = "arcanum-geometry"
+version = "0.1.0"
+edition = "2021"
+description = "Phase 1 — Geometry discretization for Arcanum"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+arcanum-nec-import = { path = "../arcanum-nec-import" }
+nalgebra = { workspace = true }

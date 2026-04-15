@@ -1,0 +1,13 @@
+[package]
+name = "arcanum-matrix-fill"
+version = "0.1.0"
+edition = "2021"
+description = "Phase 2 — Impedance matrix fill for Arcanum"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+arcanum-geometry = { path = "../arcanum-geometry" }
+nalgebra = { workspace = true }
+rayon    = { workspace = true }

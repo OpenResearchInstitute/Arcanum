@@ -1,0 +1,22 @@
+[package]
+name = "arcanum-py"
+version = "0.1.0"
+edition = "2021"
+description = "PyO3 Python bindings for Arcanum"
+
+[lib]
+name = "arcanum"           # the importable Python module name
+crate-type = ["cdylib"]
+
+# pyo3 0.22's #[pyfunction] macro generates conversion boilerplate that triggers
+# false-positive clippy lints. These are suppressed crate-wide.
+[lints.clippy]
+useless_conversion = "allow"
+
+[dependencies]
+arcanum-nec-import   = { path = "../arcanum-nec-import" }
+arcanum-geometry     = { path = "../arcanum-geometry" }
+arcanum-matrix-fill  = { path = "../arcanum-matrix-fill" }
+arcanum-matrix-solve = { path = "../arcanum-matrix-solve" }
+arcanum-postprocess  = { path = "../arcanum-postprocess" }
+pyo3 = { workspace = true }
