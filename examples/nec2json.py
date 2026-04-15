@@ -1,4 +1,4 @@
-"""nec_dump.py — dump a parsed NEC deck as JSON.
+"""nec2json.py — dump a parsed NEC deck as JSON.
 
 Usage:
     python examples/nec_dump.py path/to/deck.nec
@@ -41,11 +41,29 @@ def sim_to_dict(sim) -> dict:
     mesh = sim.mesh_input
     ground_elec = sim.ground_electrical
 
+    t = mesh.transforms
     out = {
         "mesh_input": {
             "gpflag": mesh.gpflag,
             "ground_type": mesh.ground.ground_type,
             "wires": [wire_to_dict(w) for w in mesh.wires],
+            "transforms": {
+                "gs_scale": t.gs_scale,
+                "gm_ops": [
+                    {
+                        "tag": op.tag,
+                        "n_copies": op.n_copies,
+                        "rot_x_deg": op.rot_x,
+                        "rot_y_deg": op.rot_y,
+                        "rot_z_deg": op.rot_z,
+                        "trans_x": op.trans_x,
+                        "trans_y": op.trans_y,
+                        "trans_z": op.trans_z,
+                        "tag_increment": op.tag_increment,
+                    }
+                    for op in t.gm_ops
+                ],
+            },
         },
         "frequencies_hz": sim.frequencies,
         "sources": [

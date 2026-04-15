@@ -8,7 +8,10 @@
 //   - Enforce card ordering (geometry cards before GE; GE required)
 //   - Validate field values for each card type
 //   - Build the tag registry from GW/GA/GH cards; hard-error on duplicates
-//   - Apply GS scale and GM transformations to wire coordinates
+//   - Record GS and GM cards verbatim in GeometryTransforms (NOT applied here —
+//     Phase 1 owns coordinate transformation per docs/phase1-geometry/design.md)
+//   - Register GM-generated copy tags in the tag registry (for EX/LD validation)
+//     without modifying wire coordinates
 //   - Split the GN card: ground type → MeshInput; electrical params → ground_electrical
 //   - Validate EX and LD tag/segment references against the complete tag registry
 //   - Assemble the frequency list from FR cards (MHz → Hz conversion here)
@@ -36,8 +39,7 @@ pub(crate) fn route(deck: ParsedDeck) -> Result<(SimulationInput, ParseWarnings)
 
     // ── Geometry accumulation ─────────────────────────────────────────────
     let mut wires: Vec<WireDescription> = Vec::new();
-    let mut gs_scale: Option<f64> = None;
-    let mut pending_gm: Vec<(usize, GmCard)> = Vec::new();
+    let mut transforms = GeometryTransforms::default();
     let mut ge_gpflag: i32 = 0;
     let mut ge_seen = false;
 
@@ -124,7 +126,8 @@ pub(crate) fn route(deck: ParsedDeck) -> Result<(SimulationInput, ParseWarnings)
                         "GS XSCALE must not be zero".to_string(),
                     ));
                 }
-                gs_scale = Some(gs.scale);
+                // Store for Phase 1; do not apply to coordinates here.
+                transforms.gs_scale = Some(gs.scale);
             }
 
             NecCard::Gm(gm) => {
@@ -140,18 +143,26 @@ pub(crate) fn route(deck: ParsedDeck) -> Result<(SimulationInput, ParseWarnings)
                             .to_string(),
                     ));
                 }
-                pending_gm.push((line_number, gm));
+                // Register copy tags in the tag registry so EX/LD validation
+                // can resolve references to GM-generated wires. Coordinates are
+                // not modified; Phase 1 will apply the transformation.
+                if gm.n_copies > 0 {
+                    register_gm_copies(&gm, &wires, &mut tag_registry, line_number)?;
+                }
+                transforms.gm_ops.push(GmOperation {
+                    tag: gm.tag,
+                    n_copies: gm.n_copies,
+                    rot_x: gm.rot_x,
+                    rot_y: gm.rot_y,
+                    rot_z: gm.rot_z,
+                    trans_x: gm.trans_x,
+                    trans_y: gm.trans_y,
+                    trans_z: gm.trans_z,
+                    tag_increment: gm.tag_increment,
+                });
             }
 
             NecCard::Ge(ge) => {
-                // Apply GS scale to all wire coordinates (not radii).
-                if let Some(scale) = gs_scale {
-                    apply_gs(&mut wires, scale);
-                }
-                // Apply GM transformations in deck order.
-                for (gm_line, gm) in pending_gm.drain(..) {
-                    apply_gm(&mut wires, &mut tag_registry, &gm, gm_line)?;
-                }
                 ge_gpflag = ge.gpflag;
                 ge_seen = true;
             }
@@ -305,6 +316,7 @@ pub(crate) fn route(deck: ParsedDeck) -> Result<(SimulationInput, ParseWarnings)
                 wires,
                 ground,
                 gpflag: ge_gpflag,
+                transforms,
             },
             frequencies,
             sources,
@@ -638,166 +650,38 @@ fn near_field_request(card: &NearFieldCard) -> NearFieldRequest {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GS — global scale
+// GM — tag registration for copy validation
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Scale all wire endpoint coordinates by `scale`. Wire radii are NOT scaled,
-/// per docs/nec-import/card-reference.md Section 3 (GS critical note).
-fn apply_gs(wires: &mut [WireDescription], scale: f64) {
-    for wire in wires.iter_mut() {
-        match wire {
-            WireDescription::Straight(sw) => {
-                sw.x1 *= scale;
-                sw.y1 *= scale;
-                sw.z1 *= scale;
-                sw.x2 *= scale;
-                sw.y2 *= scale;
-                sw.z2 *= scale;
-                // sw.radius is intentionally NOT scaled
-            }
-            WireDescription::Arc(aw) => {
-                // Scale the arc radius (a geometric dimension).
-                // Wire radius is NOT scaled.
-                aw.arc_radius *= scale;
-            }
-            WireDescription::Helix(hw) => {
-                // Scale all geometric dimensions; wire radius is NOT scaled.
-                hw.pitch *= scale;
-                hw.total_length *= scale;
-                hw.radius_start *= scale;
-                hw.radius_end *= scale;
-                // n_turns = total_length / pitch is unchanged by uniform scaling
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GM — geometry move / rotate / replicate
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Apply a GM transformation to the wire list.
+/// Register the tags that a GM card with NRPT > 0 will generate, so that EX
+/// and LD cards referencing those tags can be validated at parse time.
 ///
-/// If NRPT = 0: transform the specified wire(s) in place (tag unchanged).
-/// If NRPT > 0: keep original wire(s); generate NRPT copies, each with the
-///              transform applied one more time than the previous copy.
-///              Copy tags are incremented by ITS per copy.
-///
-/// GM is fully implemented for StraightWire. For ArcWire and HelixWire,
-/// translation is applied via GS scaling; rotation of curved-segment geometry
-/// requires Phase 1 involvement and is not applied here.
-fn apply_gm(
-    wires: &mut Vec<WireDescription>,
-    registry: &mut TagRegistry,
+/// Coordinates are NOT modified here. Phase 1 applies the actual transformation.
+fn register_gm_copies(
     gm: &GmCard,
+    wires: &[WireDescription],
+    registry: &mut TagRegistry,
     line_number: usize,
 ) -> Result<(), ParseError> {
-    // Collect indices of wires to transform.
-    let target_indices: Vec<usize> = if gm.tag == 0 {
-        (0..wires.len()).collect()
+    let source_wires: Vec<(u32, u32)> = if gm.tag == 0 {
+        wires.iter().map(|w| (w.tag(), w.segment_count())).collect()
     } else {
-        let idx = wires
-            .iter()
-            .position(|w| w.tag() == gm.tag)
-            .ok_or_else(|| {
-                ParseError::new(
-                    ParseErrorKind::UnknownTagReference,
-                    line_number,
-                    format!("GM references tag {} which is not defined", gm.tag),
-                )
-            })?;
-        vec![idx]
+        let src = wires.iter().find(|w| w.tag() == gm.tag).ok_or_else(|| {
+            ParseError::new(
+                ParseErrorKind::UnknownTagReference,
+                line_number,
+                format!("GM references tag {} which is not defined", gm.tag),
+            )
+        })?;
+        vec![(src.tag(), src.segment_count())]
     };
 
-    if gm.n_copies == 0 {
-        // Transform in place.
-        for &idx in &target_indices {
-            transform_wire_in_place(&mut wires[idx], gm);
-        }
-    } else {
-        // Generate copies. The original wire is not moved.
-        // Copy k gets the transform applied k times to the original.
-        let source_wires: Vec<WireDescription> =
-            target_indices.iter().map(|&i| wires[i].clone()).collect();
-
-        for copy_num in 1..=(gm.n_copies as usize) {
-            for src in &source_wires {
-                // Apply the transform copy_num times to the source wire.
-                let mut new_wire = src.clone();
-                for _ in 0..copy_num {
-                    transform_wire_in_place(&mut new_wire, gm);
-                }
-                // Assign the new tag.
-                let new_tag = src.tag() + gm.tag_increment * copy_num as u32;
-                set_wire_tag(&mut new_wire, new_tag);
-
-                let wire_index = wires.len();
-                let seg_count = new_wire.segment_count();
-                registry.insert(new_tag, wire_index, seg_count, line_number)?;
-                wires.push(new_wire);
-            }
+    for copy_num in 1..=(gm.n_copies as usize) {
+        for &(src_tag, seg_count) in &source_wires {
+            let new_tag = src_tag + gm.tag_increment * copy_num as u32;
+            // Wire index is a placeholder — Phase 1 assigns real indices.
+            registry.insert(new_tag, usize::MAX, seg_count, line_number)?;
         }
     }
     Ok(())
-}
-
-/// Apply one application of the GM rotation and translation to a wire.
-/// Full rotation is implemented for StraightWire endpoints.
-/// ArcWire and HelixWire receive translation only (their parametric forms
-/// are origin-relative and cannot be rotated without Phase 1 involvement).
-fn transform_wire_in_place(wire: &mut WireDescription, gm: &GmCard) {
-    match wire {
-        WireDescription::Straight(sw) => {
-            let (x1, y1, z1) = rotate_then_translate(sw.x1, sw.y1, sw.z1, gm);
-            let (x2, y2, z2) = rotate_then_translate(sw.x2, sw.y2, sw.z2, gm);
-            sw.x1 = x1;
-            sw.y1 = y1;
-            sw.z1 = z1;
-            sw.x2 = x2;
-            sw.y2 = y2;
-            sw.z2 = z2;
-        }
-        WireDescription::Arc(_) | WireDescription::Helix(_) => {
-            // Curved wires are origin-relative in their parametric form.
-            // Rotation and translation require Phase 1 to recompute the
-            // parametric form. This is a known limitation of the initial
-            // implementation; GM on GA/GH is not supported here.
-        }
-    }
-}
-
-/// Apply GM rotation (ROX → ROY → ROZ) then translation (XS, YS, ZS)
-/// to a single point.
-fn rotate_then_translate(x: f64, y: f64, z: f64, gm: &GmCard) -> (f64, f64, f64) {
-    // Rotation about X axis (ROX degrees)
-    let (x, y, z) = rotate_x(x, y, z, gm.rot_x.to_radians());
-    // Rotation about Y axis (ROY degrees)
-    let (x, y, z) = rotate_y(x, y, z, gm.rot_y.to_radians());
-    // Rotation about Z axis (ROZ degrees)
-    let (x, y, z) = rotate_z(x, y, z, gm.rot_z.to_radians());
-    // Translation
-    (x + gm.trans_x, y + gm.trans_y, z + gm.trans_z)
-}
-
-fn rotate_x(x: f64, y: f64, z: f64, angle: f64) -> (f64, f64, f64) {
-    let (c, s) = (angle.cos(), angle.sin());
-    (x, y * c - z * s, y * s + z * c)
-}
-
-fn rotate_y(x: f64, y: f64, z: f64, angle: f64) -> (f64, f64, f64) {
-    let (c, s) = (angle.cos(), angle.sin());
-    (x * c + z * s, y, -x * s + z * c)
-}
-
-fn rotate_z(x: f64, y: f64, z: f64, angle: f64) -> (f64, f64, f64) {
-    let (c, s) = (angle.cos(), angle.sin());
-    (x * c - y * s, x * s + y * c, z)
-}
-
-fn set_wire_tag(wire: &mut WireDescription, tag: u32) {
-    match wire {
-        WireDescription::Straight(sw) => sw.tag = tag,
-        WireDescription::Arc(aw) => aw.tag = tag,
-        WireDescription::Helix(hw) => hw.tag = tag,
-    }
 }

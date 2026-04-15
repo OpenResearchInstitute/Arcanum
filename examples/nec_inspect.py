@@ -178,6 +178,27 @@ def print_output_requests(sim) -> None:
             field("step  (dx,dy,dz)",  f"({nf.dx}, {nf.dy}, {nf.dz})")
 
 
+def print_transforms(sim) -> None:
+    t = sim.mesh_input.transforms
+    if t.gs_scale is None and not t.gm_ops:
+        return
+    heading("GEOMETRY TRANSFORMS  [GS / GM]")
+    if t.gs_scale is not None:
+        field("GS scale factor", t.gs_scale)
+    for i, op in enumerate(t.gm_ops):
+        action = f"{op.n_copies} cop{'y' if op.n_copies == 1 else 'ies'}" \
+                 if op.n_copies > 0 else "in-place"
+        subheading(f"GM {i + 1}  tag={op.tag}  {action}")
+        field("rotation x °",    op.rot_x)
+        field("rotation y °",    op.rot_y)
+        field("rotation z °",    op.rot_z)
+        field("translation x",   op.trans_x)
+        field("translation y",   op.trans_y)
+        field("translation z",   op.trans_z)
+        if op.n_copies > 0:
+            field("tag increment",   op.tag_increment)
+
+
 def print_warnings(warnings) -> None:
     if not warnings:
         return
@@ -202,6 +223,7 @@ def main() -> int:
 
     print(f"\nFile: {path}")
     print_geometry(sim)
+    print_transforms(sim)
     print_ground_electrical(sim)
     print_frequencies(sim)
     print_sources(sim)

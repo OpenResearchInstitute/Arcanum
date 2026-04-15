@@ -103,7 +103,14 @@ fn v_fmt_006_sci_notation_integer_field() {
         "EN\n",
     );
     let (sim, warnings) = parse(deck).expect("parse should succeed");
+    // Wire coordinates are raw (untransformed); transform is stored for Phase 1.
     check_wire(&sim.mesh_input.wires);
+    assert_eq!(sim.mesh_input.transforms.gm_ops.len(), 1);
+    let op = &sim.mesh_input.transforms.gm_ops[0];
+    assert_eq!(op.tag, 0);
+    assert_eq!(op.n_copies, 0);
+    approx_eq!(op.rot_z, 45.0);
+    assert_eq!(op.tag_increment, 0);
     assert!(warnings.is_empty());
 }
 

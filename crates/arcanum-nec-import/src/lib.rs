@@ -47,7 +47,7 @@ pub fn parse_file(path: &Path) -> Result<(SimulationInput, ParseWarnings), Parse
 pub use errors::{ParseError, ParseErrorKind, ParseWarning, ParseWarningKind, ParseWarnings};
 
 pub use cards::{
-    ArcWire, GeometricGround, GroundElectrical, GroundModel, GroundType, HelixWire, LoadDefinition,
-    MeshInput, NearFieldRequest, OutputRequests, RadiationPatternRequest, SimulationInput,
-    SourceDefinition, StraightWire, WireDescription,
+    ArcWire, GeometricGround, GeometryTransforms, GmOperation, GroundElectrical, GroundModel,
+    GroundType, HelixWire, LoadDefinition, MeshInput, NearFieldRequest, OutputRequests,
+    RadiationPatternRequest, SimulationInput, SourceDefinition, StraightWire, WireDescription,
 };
