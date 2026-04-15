@@ -1,7 +1,7 @@
 # Arcanum
 Open Source MoM Solver for Antenna Design and Analysis
 
-Get involved at https://openresearch.instititue/getting-started
+Get involved at https://www.openresearch.institute/getting-started/
 
 Find #antenna-design channel on ORI Slack after securing an invitation (see link above). 
 
