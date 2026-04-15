@@ -326,6 +326,108 @@ impl PyGroundElectrical {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GeometryTransforms
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[pyclass(name = "GmOperation")]
+struct PyGmOperation {
+    inner: nec::GmOperation,
+}
+
+#[pymethods]
+impl PyGmOperation {
+    /// ITAG — wire tag to transform. 0 = all wires.
+    #[getter]
+    fn tag(&self) -> u32 {
+        self.inner.tag
+    }
+    /// NRPT — number of additional copies to generate. 0 = transform in place.
+    #[getter]
+    fn n_copies(&self) -> u32 {
+        self.inner.n_copies
+    }
+    /// ROX — rotation about x-axis, degrees.
+    #[getter]
+    fn rot_x(&self) -> f64 {
+        self.inner.rot_x
+    }
+    /// ROY — rotation about y-axis, degrees.
+    #[getter]
+    fn rot_y(&self) -> f64 {
+        self.inner.rot_y
+    }
+    /// ROZ — rotation about z-axis, degrees.
+    #[getter]
+    fn rot_z(&self) -> f64 {
+        self.inner.rot_z
+    }
+    /// XS — translation along x-axis.
+    #[getter]
+    fn trans_x(&self) -> f64 {
+        self.inner.trans_x
+    }
+    /// YS — translation along y-axis.
+    #[getter]
+    fn trans_y(&self) -> f64 {
+        self.inner.trans_y
+    }
+    /// ZS — translation along z-axis.
+    #[getter]
+    fn trans_z(&self) -> f64 {
+        self.inner.trans_z
+    }
+    /// ITS — tag increment per generated copy.
+    #[getter]
+    fn tag_increment(&self) -> u32 {
+        self.inner.tag_increment
+    }
+    fn __repr__(&self) -> String {
+        format!(
+            "GmOperation(tag={}, n_copies={}, rot=({},{},{}), trans=({},{},{}))",
+            self.inner.tag,
+            self.inner.n_copies,
+            self.inner.rot_x,
+            self.inner.rot_y,
+            self.inner.rot_z,
+            self.inner.trans_x,
+            self.inner.trans_y,
+            self.inner.trans_z,
+        )
+    }
+}
+
+#[pyclass(name = "GeometryTransforms")]
+struct PyGeometryTransforms {
+    inner: nec::GeometryTransforms,
+}
+
+#[pymethods]
+impl PyGeometryTransforms {
+    /// GS scale factor, or None if no GS card was present.
+    #[getter]
+    fn gs_scale(&self) -> Option<f64> {
+        self.inner.gs_scale
+    }
+    /// GM operations in deck order.
+    #[getter]
+    fn gm_ops(&self) -> Vec<PyGmOperation> {
+        self.inner
+            .gm_ops
+            .iter()
+            .cloned()
+            .map(|op| PyGmOperation { inner: op })
+            .collect()
+    }
+    fn __repr__(&self) -> String {
+        format!(
+            "GeometryTransforms(gs_scale={:?}, gm_ops={})",
+            self.inner.gs_scale,
+            self.inner.gm_ops.len()
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MeshInput
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -337,6 +439,7 @@ struct PyMeshInput {
 #[pymethods]
 impl PyMeshInput {
     /// List of wire elements. Each item is a StraightWire, ArcWire, or HelixWire.
+    /// Coordinates are raw (pre-transformation); apply transforms before use.
     #[getter]
     fn wires(&self, py: Python<'_>) -> PyResult<Vec<PyObject>> {
         self.inner
@@ -359,6 +462,14 @@ impl PyMeshInput {
     #[getter]
     fn gpflag(&self) -> i32 {
         self.inner.gpflag
+    }
+
+    /// GS and GM transformations to be applied by Phase 1.
+    #[getter]
+    fn transforms(&self) -> PyGeometryTransforms {
+        PyGeometryTransforms {
+            inner: self.inner.transforms.clone(),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -745,6 +856,8 @@ fn arcanum(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // NEC import types
     m.add_class::<PyParseWarning>()?;
+    m.add_class::<PyGmOperation>()?;
+    m.add_class::<PyGeometryTransforms>()?;
     m.add_class::<PyStraightWire>()?;
     m.add_class::<PyArcWire>()?;
     m.add_class::<PyHelixWire>()?;

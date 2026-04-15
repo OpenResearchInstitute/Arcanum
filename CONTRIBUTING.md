@@ -25,6 +25,21 @@ cargo --version
 
 Verify: `python --version`
 
+**just** (recommended)
+
+`just` is a command runner that provides short recipes for the most common
+development tasks. It is optional — all commands it wraps can be run directly
+— but it ensures the Python extension is always rebuilt before tests run,
+which prevents hard-to-diagnose stale-extension failures.
+
+```sh
+cargo install just
+# or on Windows with winget:
+winget install Casey.Just
+```
+
+Verify: `just --version`
+
 ---
 
 ### First-Time Setup
@@ -50,16 +65,20 @@ Install dependencies:
 Build the Rust extension and install it into the virtual environment:
 
 ```sh
+# With just (recommended):
+just develop
+
+# Without just:
 # Windows
 .venv\Scripts\maturin develop
-
 # Linux / macOS
 .venv/bin/maturin develop
 ```
 
 This compiles all Rust crates and produces an importable `arcanum` Python
 module in the virtual environment. Re-run this command whenever you change
-Rust source code before running Python tests.
+Rust source code before running Python tests. If you use `just test` or
+`just test-python`, this step runs automatically as a prerequisite.
 
 ---
 
@@ -68,36 +87,44 @@ Rust source code before running Python tests.
 ### Rust unit tests
 
 ```sh
+# With just:
+just test-rust
+
+# Without just:
 cargo test --workspace
 ```
 
-Runs 33 unit tests in `arcanum-nec-import` covering V-PARSE, V-FMT, V-ERR,
+Runs 35 unit tests in `arcanum-nec-import` covering V-PARSE, V-FMT, V-ERR,
 V-WARN, and V-REAL cases from `docs/nec-import/validation.md`. No separate
 build step is needed — `cargo test` compiles and runs in one command.
 
 ### Python integration tests
 
-Build the extension first (see above), then:
-
 ```sh
+# With just (rebuilds extension automatically):
+just test-python
+
+# Without just — build the extension first, then:
 # Windows
 .venv\Scripts\pytest tests/ -v
-
 # Linux / macOS
 .venv/bin/pytest tests/ -v
 ```
 
 These tests exercise the same validation cases end-to-end through the PyO3
 Python bindings. They require the extension to be current with the Rust
-source; run `maturin develop` before `pytest` if you have changed any Rust
-code since the last build.
+source. `just test-python` handles this automatically via its `develop`
+prerequisite.
 
 ### Running both together (matches CI)
 
 ```sh
+# With just:
+just test
+
+# Without just:
 # Linux / macOS
 cargo test --workspace && .venv/bin/maturin develop && .venv/bin/pytest tests/ -v
-
 # Windows
 cargo test --workspace && .venv\Scripts\maturin develop && .venv\Scripts\pytest tests/ -v
 ```
@@ -109,12 +136,21 @@ cargo test --workspace && .venv\Scripts\maturin develop && .venv\Scripts\pytest 
 ### Formatting check
 
 ```sh
+# With just:
+just check
+
+# Without just:
 cargo fmt --check
+cargo clippy --workspace -- -D warnings
 ```
 
 To auto-apply formatting:
 
 ```sh
+# With just:
+just fmt
+
+# Without just:
 cargo fmt
 ```
 

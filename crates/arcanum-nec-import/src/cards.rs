@@ -228,16 +228,55 @@ pub struct SimulationInput {
 /// Wire geometry and ground boundary condition consumed by Phase 1.
 #[derive(Debug, Clone, Default)]
 pub struct MeshInput {
-    /// Wire descriptions after GS and GM transformations have been applied.
+    /// Raw wire descriptions as declared in the deck, before any GS/GM
+    /// transformations. Phase 1 is responsible for applying `transforms`.
     pub wires: Vec<WireDescription>,
     /// Ground plane boundary condition (geometric only).
     pub ground: GeometricGround,
     /// Ground plane flag from GE card.
     pub gpflag: i32,
+    /// GS scale and GM operations to be applied by Phase 1.
+    pub transforms: GeometryTransforms,
+}
+
+/// GS and GM transformation data passed through to Phase 1.
+///
+/// The nec-import parser records these cards verbatim; it does not apply them.
+/// Phase 1 applies GS scaling then GM operations (in deck order) to produce
+/// final segment coordinates.
+#[derive(Debug, Clone, Default)]
+pub struct GeometryTransforms {
+    /// GS XSCALE — uniform scale factor. `None` if no GS card was present.
+    /// Applied before GM operations. Does not scale wire radii.
+    pub gs_scale: Option<f64>,
+    /// GM operations in deck order.
+    pub gm_ops: Vec<GmOperation>,
+}
+
+/// One GM card — a rotation, translation, and optional replication.
+#[derive(Debug, Clone)]
+pub struct GmOperation {
+    /// ITAG — wire tag to transform. 0 = all wires.
+    pub tag: u32,
+    /// NRPT — number of additional copies to generate. 0 = transform in place.
+    pub n_copies: u32,
+    /// ROX — rotation about x-axis, degrees.
+    pub rot_x: f64,
+    /// ROY — rotation about y-axis, degrees.
+    pub rot_y: f64,
+    /// ROZ — rotation about z-axis, degrees.
+    pub rot_z: f64,
+    /// XS — translation along x-axis.
+    pub trans_x: f64,
+    /// YS — translation along y-axis.
+    pub trans_y: f64,
+    /// ZS — translation along z-axis.
+    pub trans_z: f64,
+    /// ITS — tag increment applied to each generated copy.
+    pub tag_increment: u32,
 }
 
 /// A single wire element — straight, arc, or helix.
-/// Coordinates reflect any GS/GM transformations applied by the router.
 #[derive(Debug, Clone)]
 pub enum WireDescription {
     Straight(StraightWire),

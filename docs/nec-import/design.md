@@ -115,7 +115,7 @@ The semantic stage consumes the `ParsedDeck` and produces a `SimulationInput`. I
 - Validating card ordering (geometry cards before GE; simulation cards after GE)
 - Checking that GE is present (hard error if absent)
 - Building the tag registry from GW/GA/GH cards and checking for duplicate tags
-- Applying GS and GM transformations to wire geometry
+- Recording GS and GM cards verbatim in `GeometryTransforms` for Phase 1 to apply
 - Resolving EX and LD tag/segment references against the tag registry
 - Splitting the GN card: geometric boundary condition → `MeshInput`; electrical parameters → `GroundElectrical`
 - Assembling the frequency list from FR cards
@@ -144,9 +144,27 @@ Each field is consumed independently by the relevant phase. No phase receives th
 
 ```rust
 pub struct MeshInput {
-    pub wires: Vec<WireDescription>,         // From GW, GA, GH (after GS/GM applied)
+    pub wires: Vec<WireDescription>,         // From GW, GA, GH (raw, pre-transformation)
     pub ground: GeometricGround,             // From GN (geometric portion only)
     pub gpflag: i32,                         // From GE
+    pub transforms: GeometryTransforms,      // From GS and GM cards, for Phase 1
+}
+
+pub struct GeometryTransforms {
+    pub gs_scale: Option<f64>,   // GS XSCALE; None if no GS card present
+    pub gm_ops: Vec<GmOperation>, // GM cards in deck order
+}
+
+pub struct GmOperation {
+    pub tag: u32,           // ITAG (0 = all wires)
+    pub n_copies: u32,      // NRPT
+    pub rot_x: f64,         // ROX degrees
+    pub rot_y: f64,         // ROY degrees
+    pub rot_z: f64,         // ROZ degrees
+    pub trans_x: f64,       // XS
+    pub trans_y: f64,       // YS
+    pub trans_z: f64,       // ZS
+    pub tag_increment: u32, // ITS
 }
 ```
 
@@ -174,15 +192,13 @@ if gn.iperf == 0 || gn.iperf == 2 {
 
 The `GnCard` struct is consumed entirely in the semantic stage and does not appear in `SimulationInput`. Neither Phase 1 nor Phase 2 sees the raw card. They see only their respective derived structs. This is the implementation of the split documented in `docs/phase1-geometry/design.md` Section 6.1.
 
-### 4.5 Transformation Application
+### 4.5 Geometry Transformation Passthrough
 
-GS and GM cards are applied eagerly in the semantic stage before `MeshInput` is constructed. The transformation pipeline is:
+GS and GM cards are recorded verbatim in `MeshInput.transforms` and passed to Phase 1 unchanged. The semantic stage does not apply them to wire coordinates. Phase 1 owns coordinate transformation per `docs/phase1-geometry/design.md` Sections 7.1 and 7.2.
 
-1. Collect all wire descriptions from GW/GA/GH cards in deck order.
-2. Apply GS scale factor to all wire endpoint coordinates (not radii).
-3. Apply GM transformations in deck order, each referencing wires by tag.
+`MeshInput.wires` contains the raw wire descriptions exactly as declared in the deck. Phase 1 is responsible for applying `transforms.gs_scale` (first) and then `transforms.gm_ops` (in order) to produce final segment coordinates.
 
-After this pipeline, `MeshInput.wires` contains final transformed coordinates. No transformation records are preserved in `MeshInput`. Phase 1 sees only the result.
+**Tag registry and EX/LD validation:** When a GM card has `n_copies > 0`, the semantic stage still registers the generated copy tags in the internal tag registry so that EX and LD card cross-references can be validated at parse time. This registration records only the tag number and segment count; no wire coordinates are modified.
 
 ### 4.6 Tag Registry
 
