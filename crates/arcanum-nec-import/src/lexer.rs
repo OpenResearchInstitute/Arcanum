@@ -323,9 +323,12 @@ impl Tokens {
     /// Parse a token as i32, accepting scientific-notation floats that are
     /// whole numbers (e.g. "0.00000E+00" → 0). Some NEC generators write every
     /// field in scientific notation, including integer fields.
-    fn parse_int_token(&self, token: &str, field_num: usize, field_name: &str)
-        -> Result<i32, ParseError>
-    {
+    fn parse_int_token(
+        &self,
+        token: &str,
+        field_num: usize,
+        field_name: &str,
+    ) -> Result<i32, ParseError> {
         if let Ok(v) = token.parse::<i32>() {
             return Ok(v);
         }
