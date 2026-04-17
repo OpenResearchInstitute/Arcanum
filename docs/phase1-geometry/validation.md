@@ -3,7 +3,7 @@
 **Project:** Arcanum  
 **Document:** `docs/phase1-geometry/validation.md`  
 **Status:** DRAFT  
-**Revision:** 0.2
+**Revision:** 0.4
 
 ---
 
@@ -44,7 +44,7 @@ A center-fed half-wave dipole along the z-axis, 0.5 m long, 1 mm radius, 2 segme
 - Segment 0: start (0, 0, -0.25), end (0, 0, 0.0), length 0.25 m
 - Segment 1: start (0, 0, 0.0), end (0, 0, 0.25), length 0.25 m
 - Both segments: radius 0.001 m, material PEC, tag 1
-- Junction at (0, 0, 0.0) connecting segment 0 end to segment 1 start
+- No junctions — the midpoint at (0, 0, 0.0) is an intra-wire adjacent boundary between segments 0 and 1 of the same `GW` card. Intra-wire adjacency is implicit in the discretization and is never recorded as a junction. See `design.md` Section 5.2.
 - Two free endpoints: (0, 0, -0.25) and (0, 0, 0.25)
 - Ground descriptor: GroundType::None
 
@@ -85,9 +85,10 @@ Two collinear wires sharing an endpoint at (1, 0, 0).
 
 **Expected Mesh:**
 - Segment count: 6
-- Junction at (1.0, 0.0, 0.0) connecting segment 2 (end) to segment 3 (start)
+- Junction at (1.0, 0.0, 0.0) connecting segment 2 end to segment 3 start
 - Junction map: 1 junction, valence 2
 - Free endpoints: (0, 0, 0) and (2, 0, 0)
+- *(Note: the intra-wire boundaries at x = 1/3 and x = 2/3 within wire 1, and x = 4/3 and x = 5/3 within wire 2, are implicit adjacencies and are not junctions.)*
 
 ---
 
@@ -105,8 +106,9 @@ Three wires meeting at the origin, one along each axis.
 
 **Expected Mesh:**
 - Segment count: 6
-- Junction at (0, 0, 0) with valence 3 — wire 1 midpoint, wire 2 start, wire 3 start
-- Junction map correctly identifies all three segment endpoints at origin as the same junction
+- Junction at (0, 0, 0) with valence 3 (3 wires meet here): wire 1 passes through (contributing seg 0 End and seg 1 Start), wire 2 starts here (seg 2 Start), wire 3 starts here (seg 4 Start). The junction record holds 4 segment endpoints.
+- Valence is counted in wires, not segment endpoints. Wire 1's midpoint counts as 1 wire connection even though it places 2 endpoints into the junction record. See `design.md` Section 5.5.
+- Junction map correctly identifies all four segment endpoints at the origin as belonging to the same junction.
 
 **Note:** This case validates that Phase 1 correctly handles junctions of valence > 2.
 
@@ -226,9 +228,11 @@ An arc that almost closes (359° instead of 360°). The gap between start and en
 
 **Input:**
 ```
-GH 1 8 0.0628 0.05 0.05 0.001 0.001 0.0
+GH 1 8 0.0628 0.0628 0.05 0.05 0.001
 GE 0
 ```
+
+Fields: tag=1, NS=8, S(pitch)=0.0628 m, HL(total_length)=0.0628 m, A1=0.05 m, A2=0.05 m, RAD=0.001 m. n_turns = HL/S = 1.0.
 
 A single-turn helix: pitch 0.0628 m (≈ λ/10 at 480 MHz), radius 0.05 m, 8 segments, 1 mm wire radius. Simple but effective test.
 
@@ -247,11 +251,13 @@ A single-turn helix: pitch 0.0628 m (≈ λ/10 at 480 MHz), radius 0.05 m, 8 seg
 
 **Input:**
 ```
-GH 1 40 0.0628 0.05 0.05 0.001 0.001 0.0
+GH 1 40 0.0628 0.314 0.05 0.05 0.001
 GE 0
 ```
 
-A 5-turn helix (40 segments at 8 per turn), same parameters as V-HEL-001.
+Fields: tag=1, NS=40, S(pitch)=0.0628 m, HL(total_length)=0.314 m, A1=0.05 m, A2=0.05 m, RAD=0.001 m. n_turns = HL/S = 5.0.
+
+A 5-turn helix (40 segments at 8 per turn), same pitch and radius as V-HEL-001.
 
 **Expected Mesh:**
 - Segment count: 40
@@ -269,10 +275,12 @@ A 5-turn helix (40 segments at 8 per turn), same parameters as V-HEL-001.
 
 **Input:**
 ```
-GH 1 16 0.0628 0.05 0.05 0.001 0.001 0.0
+GH 1 16 0.0628 0.1256 0.05 0.05 0.001
 GN 1
 GE 1
 ```
+
+Fields: tag=1, NS=16, S(pitch)=0.0628 m, HL(total_length)=0.1256 m, A1=0.05 m, A2=0.05 m, RAD=0.001 m. n_turns = HL/S = 2.0.
 
 A 2-turn helix above a PEC ground plane.
 
@@ -281,6 +289,7 @@ A 2-turn helix above a PEC ground plane.
 - Image segments have z-coordinates negated relative to originals
 - Image segments are flagged as images in the tag map (not addressable by EX/LD cards)
 - Ground descriptor: GroundType::PEC, images_generated: true
+- Junctions: 1 — real segment 0 Start and image segment 16 Start share the helix feed point at z = 0 (ground plane contact). Adjacent image segments belong to the same wire and are excluded by the intra-wire adjacency rule.
 
 ---
 
@@ -357,6 +366,7 @@ A vertical wire above a PEC ground plane (z = 0 to z = 0.5).
 - Total segment count: 8
 - Ground descriptor: GroundType::PEC, images_generated: true
 - Image segment endpoints are exact reflections: if original has endpoint (x, y, z), image has (x, y, -z)
+- Junctions: 1 — real segment 0 Start and image segment 4 Start share the ground-plane contact point (0, 0, 0). Adjacent image segments belong to the same wire and are excluded by the intra-wire adjacency rule.
 
 ---
 
@@ -396,6 +406,7 @@ A horizontal wire lying exactly in the z = 0 ground plane. Trick!
 - No image segments generated (wire is its own image)
 - Warning emitted noting wire lies in ground plane
 - Segment count: 4 (not 8)
+- Junctions: 0 — no images means no real-to-image connections; single wire has no cross-wire connections
 
 ---
 
@@ -457,8 +468,6 @@ Each case must be implemented as a Rust unit test in the Phase 1 test module. Te
 3. Assert the expected output values with the specified tolerances using `assert!` or `approx_eq!`
 4. For hard error cases, assert that the function returns `Err(...)` not `Ok(...)`
 5. For warning cases, assert that `ParseWarnings` is non-empty and contains the expected warning type
-
-Convergence plots, demonstrating that geometric continuity and endpoint accuracy hold as N increases, are required for V-HEL-002 and V-ARC-001 before Phase 1 implementation is marked complete.
 
 ---
 
