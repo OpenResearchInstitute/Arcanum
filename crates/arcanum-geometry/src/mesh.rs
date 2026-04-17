@@ -93,18 +93,13 @@ pub struct HelixParams {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Wire material model.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum Material {
     /// Perfect electric conductor (default).
+    #[default]
     PEC,
     /// Finite conductivity wire.
     Lossy { conductivity: f64 },
-}
-
-impl Default for Material {
-    fn default() -> Self {
-        Material::PEC
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -30,7 +30,7 @@ pub(crate) fn detect(
     // Endpoint index encoding: seg_idx * 2 + 0 = Start, seg_idx * 2 + 1 = End.
     let ep_point = |ep_idx: usize| -> Vector3<f64> {
         let seg_idx = ep_idx / 2;
-        if ep_idx % 2 == 0 {
+        if ep_idx.is_multiple_of(2) {
             segments[seg_idx].start()
         } else {
             segments[seg_idx].end()
@@ -107,15 +107,15 @@ pub(crate) fn detect(
     // Group endpoints by root.
     // Only form a Junction if the group has more than one endpoint.
     let mut groups: std::collections::HashMap<usize, Vec<usize>> = std::collections::HashMap::new();
-    for i in 0..endpoint_count {
-        groups.entry(parent[i]).or_default().push(i);
+    for (i, &root) in parent.iter().enumerate().take(endpoint_count) {
+        groups.entry(root).or_default().push(i);
     }
 
     // Build junctions and endpoint_junction.
     let mut junctions: Vec<Junction> = Vec::new();
     let mut endpoint_junction: Vec<Option<usize>> = vec![None; endpoint_count];
 
-    for (_root, members) in &groups {
+    for members in groups.values() {
         if members.len() < 2 {
             // Single endpoint — free end, not a junction.
             continue;
