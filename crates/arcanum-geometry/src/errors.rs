@@ -22,7 +22,13 @@ impl GeometryError {
 
 impl std::fmt::Display for GeometryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[wire {}] {}: {}", self.wire_index, self.kind.as_str(), self.message)
+        write!(
+            f,
+            "[wire {}] {}: {}",
+            self.wire_index,
+            self.kind.as_str(),
+            self.message
+        )
     }
 }
 
@@ -63,7 +69,10 @@ pub struct GeometryWarning {
 
 impl GeometryWarning {
     pub fn new(kind: GeometryWarningKind, message: impl Into<String>) -> Self {
-        GeometryWarning { kind, message: message.into() }
+        GeometryWarning {
+            kind,
+            message: message.into(),
+        }
     }
 }
 

@@ -983,8 +983,12 @@ impl PySegment {
                 geo::CurveParams::Arc(_) => "Arc",
                 geo::CurveParams::Helix(_) => "Helix",
             },
-            s.x, s.y, s.z,
-            e.x, e.y, e.z,
+            s.x,
+            s.y,
+            s.z,
+            e.x,
+            e.y,
+            e.z,
             if self.inner.is_image { " [image]" } else { "" }
         )
     }

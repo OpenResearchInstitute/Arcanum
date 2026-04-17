@@ -55,9 +55,8 @@ fn v_arc_001_semicircle_4_segments() {
     // GA 1 4 0.5 0.0 180.0 0.001
     // Arc in XZ plane: r(θ) = (R cosθ, 0, R sinθ), θ from 0° to 180°.
     // Each segment subtends 45°.
-    let (mesh, _warnings) =
-        build_mesh(free_space(vec![ga(1, 4, 0.5, 0.0, 180.0, 0.001)]), None)
-            .expect("build_mesh failed");
+    let (mesh, _warnings) = build_mesh(free_space(vec![ga(1, 4, 0.5, 0.0, 180.0, 0.001)]), None)
+        .expect("build_mesh failed");
 
     assert_eq!(mesh.segments.len(), 4);
 
@@ -133,9 +132,8 @@ fn v_arc_001_semicircle_4_segments() {
 #[test]
 fn v_arc_002_full_circle_8_segments() {
     // GA 1 8 0.25 0.0 360.0 0.001
-    let (mesh, _warnings) =
-        build_mesh(free_space(vec![ga(1, 8, 0.25, 0.0, 360.0, 0.001)]), None)
-            .expect("build_mesh failed");
+    let (mesh, _warnings) = build_mesh(free_space(vec![ga(1, 8, 0.25, 0.0, 360.0, 0.001)]), None)
+        .expect("build_mesh failed");
 
     assert_eq!(mesh.segments.len(), 8);
 
@@ -180,10 +178,16 @@ fn v_arc_002_full_circle_8_segments() {
     assert_eq!(j.endpoints.len(), 2);
 
     use crate::mesh::EndpointSide;
-    let has_seg0_start = j.endpoints.iter().any(|ep| ep.segment_index == 0 && ep.side == EndpointSide::Start);
-    let has_seg7_end   = j.endpoints.iter().any(|ep| ep.segment_index == 7 && ep.side == EndpointSide::End);
+    let has_seg0_start = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 0 && ep.side == EndpointSide::Start);
+    let has_seg7_end = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 7 && ep.side == EndpointSide::End);
     assert!(has_seg0_start, "self-loop junction missing seg 0 Start");
-    assert!(has_seg7_end,   "self-loop junction missing seg 7 End");
+    assert!(has_seg7_end, "self-loop junction missing seg 7 End");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -194,9 +198,8 @@ fn v_arc_002_full_circle_8_segments() {
 fn v_arc_003_near_coincident_gap() {
     // GA 1 8 0.25 0.0 359.0 0.001
     // Arc almost closes — gap between start and end is very small.
-    let (mesh, _warnings) =
-        build_mesh(free_space(vec![ga(1, 8, 0.25, 0.0, 359.0, 0.001)]), None)
-            .expect("build_mesh must succeed (no hard error)");
+    let (mesh, _warnings) = build_mesh(free_space(vec![ga(1, 8, 0.25, 0.0, 359.0, 0.001)]), None)
+        .expect("build_mesh must succeed (no hard error)");
 
     assert_eq!(mesh.segments.len(), 8, "expected 8 segments");
 
@@ -221,6 +224,9 @@ fn v_arc_003_near_coincident_gap() {
     assert!(gap < 0.01, "gap unexpectedly large: {} m", gap);
 
     // No junction created at the gap — endpoints are near-coincident but not merged.
-    assert!(mesh.junctions.is_empty(), "expected no junctions for 359° arc");
+    assert!(
+        mesh.junctions.is_empty(),
+        "expected no junctions for 359° arc"
+    );
     // TODO(Step 10): assert a NearCoincidentEndpoints warning was emitted.
 }

@@ -6,9 +6,7 @@ use arcanum_nec_import::{ArcWire, HelixWire, StraightWire, WireDescription};
 use nalgebra::Vector3;
 
 use crate::errors::{GeometryError, GeometryErrorKind, GeometryWarnings};
-use crate::mesh::{
-    ArcParams, CurveParams, HelixParams, LinearParams, Material, Segment, TagMap,
-};
+use crate::mesh::{ArcParams, CurveParams, HelixParams, LinearParams, Material, Segment, TagMap};
 
 pub(crate) fn discretize_wires(
     wires: &[WireDescription],
@@ -57,7 +55,10 @@ fn discretize_straight(
         return Err(GeometryError::new(
             GeometryErrorKind::ZeroLengthWire,
             wire_index,
-            format!("GW tag={} has identical start and end coordinates", wire.tag),
+            format!(
+                "GW tag={} has identical start and end coordinates",
+                wire.tag
+            ),
         ));
     }
 
@@ -97,9 +98,8 @@ fn discretize_arc(
     let r = wire.arc_radius;
 
     // Evaluate arc point in XZ plane: r(θ) = (R cosθ, 0, R sinθ)
-    let arc_point = |theta: f64| -> Vector3<f64> {
-        Vector3::new(r * theta.cos(), 0.0, r * theta.sin())
-    };
+    let arc_point =
+        |theta: f64| -> Vector3<f64> { Vector3::new(r * theta.cos(), 0.0, r * theta.sin()) };
 
     let base_index = segments.len();
     for k in 0..n {

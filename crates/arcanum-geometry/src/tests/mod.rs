@@ -1,11 +1,11 @@
 // Phase 1 test suite — one file per validation category
 
-mod linear;
 mod arc;
-mod helix;
-mod transforms;
 mod ground;
+mod helix;
+mod linear;
 mod tagmap;
+mod transforms;
 mod warnings;
 
 /// Approximate equality helper for f64, matching the nec-import convention.

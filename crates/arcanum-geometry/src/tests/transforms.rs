@@ -15,11 +15,25 @@ use super::approx_eq;
 fn gw(
     tag: u32,
     n: u32,
-    x1: f64, y1: f64, z1: f64,
-    x2: f64, y2: f64, z2: f64,
+    x1: f64,
+    y1: f64,
+    z1: f64,
+    x2: f64,
+    y2: f64,
+    z2: f64,
     radius: f64,
 ) -> WireDescription {
-    WireDescription::Straight(StraightWire { tag, segment_count: n, x1, y1, z1, x2, y2, z2, radius })
+    WireDescription::Straight(StraightWire {
+        tag,
+        segment_count: n,
+        x1,
+        y1,
+        z1,
+        x2,
+        y2,
+        z2,
+        radius,
+    })
 }
 
 fn input(wires: Vec<WireDescription>, transforms: GeometryTransforms) -> MeshInput {
@@ -58,7 +72,10 @@ fn v_trf_001_gs_global_scale() {
         gm_ops: vec![],
     };
     let (mesh, _) = build_mesh(
-        input(vec![gw(1, 4, 0.0, 0.0, -0.25, 0.0, 0.0, 0.25, 0.01)], transforms),
+        input(
+            vec![gw(1, 4, 0.0, 0.0, -0.25, 0.0, 0.0, 0.25, 0.01)],
+            transforms,
+        ),
         None,
     )
     .expect("build_mesh failed");
@@ -105,7 +122,10 @@ fn v_trf_002_gm_translation() {
     };
 
     let (mesh, _) = build_mesh(
-        input(vec![gw(1, 2, 0.0, 0.0, -0.25, 0.0, 0.0, 0.25, 0.001)], transforms),
+        input(
+            vec![gw(1, 2, 0.0, 0.0, -0.25, 0.0, 0.0, 0.25, 0.001)],
+            transforms,
+        ),
         None,
     )
     .expect("build_mesh failed");
@@ -116,14 +136,14 @@ fn v_trf_002_gm_translation() {
 
     // All x-coordinates should be +1.0.
     approx_eq!(mesh.segments[0].start().x, 1.0, tol);
-    approx_eq!(mesh.segments[0].end().x,   1.0, tol);
+    approx_eq!(mesh.segments[0].end().x, 1.0, tol);
     approx_eq!(mesh.segments[1].start().x, 1.0, tol);
-    approx_eq!(mesh.segments[1].end().x,   1.0, tol);
+    approx_eq!(mesh.segments[1].end().x, 1.0, tol);
 
     // y and z unchanged.
     approx_eq!(mesh.segments[0].start().y, 0.0, tol);
     approx_eq!(mesh.segments[0].start().z, -0.25, tol);
-    approx_eq!(mesh.segments[1].end().z,   0.25, tol);
+    approx_eq!(mesh.segments[1].end().z, 0.25, tol);
 
     // Explicit segment coordinates from validation.md:
     // seg 0 start: (1.0, 0.0, -0.25)
@@ -157,7 +177,10 @@ fn v_trf_003_gm_rotation_z_90deg() {
     };
 
     let (mesh, _) = build_mesh(
-        input(vec![gw(1, 1, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.001)], transforms),
+        input(
+            vec![gw(1, 1, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.001)],
+            transforms,
+        ),
         None,
     )
     .expect("build_mesh failed");
@@ -204,7 +227,10 @@ fn v_trf_004_gm_copies_translation() {
     };
 
     let (mesh, _) = build_mesh(
-        input(vec![gw(1, 1, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.001)], transforms),
+        input(
+            vec![gw(1, 1, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.001)],
+            transforms,
+        ),
         None,
     )
     .expect("build_mesh failed");

@@ -21,11 +21,17 @@ fn v_warn_001_wire_in_ground_plane_warning() {
             wires: vec![WireDescription::Straight(StraightWire {
                 tag: 1,
                 segment_count: 2,
-                x1: -0.5, y1: 0.0, z1: 0.0,
-                x2:  0.5, y2: 0.0, z2: 0.0,
+                x1: -0.5,
+                y1: 0.0,
+                z1: 0.0,
+                x2: 0.5,
+                y2: 0.0,
+                z2: 0.0,
                 radius: 0.001,
             })],
-            ground: GeometricGround { ground_type: NecGroundType::PEC },
+            ground: GeometricGround {
+                ground_type: NecGroundType::PEC,
+            },
             gpflag: 1,
             transforms: GeometryTransforms::default(),
         },
@@ -38,7 +44,11 @@ fn v_warn_001_wire_in_ground_plane_warning() {
     let has_ground_warn = warn_vec
         .iter()
         .any(|w| w.kind == GeometryWarningKind::WireInGroundPlane);
-    assert!(has_ground_warn, "expected WireInGroundPlane warning, got: {:?}", warn_vec);
+    assert!(
+        has_ground_warn,
+        "expected WireInGroundPlane warning, got: {:?}",
+        warn_vec
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,15 +70,25 @@ fn v_warn_002_near_coincident_endpoints_warning() {
         MeshInput {
             wires: vec![
                 WireDescription::Straight(StraightWire {
-                    tag: 1, segment_count: 1,
-                    x1: 0.0, y1: 0.0, z1: 0.0,
-                    x2: 1.0, y2: 0.0, z2: 0.0,
+                    tag: 1,
+                    segment_count: 1,
+                    x1: 0.0,
+                    y1: 0.0,
+                    z1: 0.0,
+                    x2: 1.0,
+                    y2: 0.0,
+                    z2: 0.0,
                     radius: 0.001,
                 }),
                 WireDescription::Straight(StraightWire {
-                    tag: 2, segment_count: 1,
-                    x1: 1.0, y1: 0.0, z1: gap,
-                    x2: 2.0, y2: 0.0, z2: gap,
+                    tag: 2,
+                    segment_count: 1,
+                    x1: 1.0,
+                    y1: 0.0,
+                    z1: gap,
+                    x2: 2.0,
+                    y2: 0.0,
+                    z2: gap,
                     radius: 0.001,
                 }),
             ],
@@ -89,8 +109,15 @@ fn v_warn_002_near_coincident_endpoints_warning() {
     let has_near_warn = warn_vec
         .iter()
         .any(|w| w.kind == GeometryWarningKind::NearCoincidentEndpoints);
-    assert!(has_near_warn, "expected NearCoincidentEndpoints warning, got: {:?}", warn_vec);
+    assert!(
+        has_near_warn,
+        "expected NearCoincidentEndpoints warning, got: {:?}",
+        warn_vec
+    );
 
     // No junction created at the near-coincident gap.
-    assert!(mesh.junctions.is_empty(), "near-coincident gap must not form a junction");
+    assert!(
+        mesh.junctions.is_empty(),
+        "near-coincident gap must not form a junction"
+    );
 }

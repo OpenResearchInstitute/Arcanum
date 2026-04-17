@@ -59,7 +59,7 @@ pub(crate) fn detect(
             let sj = j / 2;
             if segments[si].wire_index == segments[sj].wire_index {
                 // Check adjacency: (si End, sj Start) with sj == si + 1.
-                let i_is_end   = i % 2 == 1;
+                let i_is_end = i % 2 == 1;
                 let j_is_start = j % 2 == 0;
                 if i_is_end && j_is_start && sj == si + 1 {
                     continue;
@@ -91,17 +91,7 @@ pub(crate) fn detect(
                     format!(
                         "near-coincident endpoints: seg {} {} ({:.4},{:.4},{:.4}) and \
                          seg {} {} ({:.4},{:.4},{:.4}), gap = {:.3e} m",
-                        si,
-                        side_i,
-                        pi.x,
-                        pi.y,
-                        pi.z,
-                        sj,
-                        side_j,
-                        pj.x,
-                        pj.y,
-                        pj.z,
-                        dist
+                        si, side_i, pi.x, pi.y, pi.z, sj, side_j, pj.x, pj.y, pj.z, dist
                     ),
                 ));
             }
@@ -116,8 +106,7 @@ pub(crate) fn detect(
 
     // Group endpoints by root.
     // Only form a Junction if the group has more than one endpoint.
-    let mut groups: std::collections::HashMap<usize, Vec<usize>> =
-        std::collections::HashMap::new();
+    let mut groups: std::collections::HashMap<usize, Vec<usize>> = std::collections::HashMap::new();
     for i in 0..endpoint_count {
         groups.entry(parent[i]).or_default().push(i);
     }
@@ -153,10 +142,8 @@ pub(crate) fn detect(
             .iter()
             .map(|&ep_idx| segments[ep_idx / 2].wire_index)
             .collect();
-        let sides: std::collections::HashSet<u8> = members
-            .iter()
-            .map(|&ep_idx| (ep_idx % 2) as u8)
-            .collect();
+        let sides: std::collections::HashSet<u8> =
+            members.iter().map(|&ep_idx| (ep_idx % 2) as u8).collect();
         let is_self_loop = wire_indices.len() == 1 && sides.len() == 2;
 
         junctions.push(Junction {

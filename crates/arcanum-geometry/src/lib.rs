@@ -47,8 +47,7 @@ pub fn build_mesh(
     let mut warnings = GeometryWarnings::new();
 
     // Step 1: Discretize all declared wires into segments.
-    let (mut segments, mut tag_map) =
-        discretize::discretize_wires(&input.wires, &mut warnings)?;
+    let (mut segments, mut tag_map) = discretize::discretize_wires(&input.wires, &mut warnings)?;
 
     // Step 2: Apply GS scale and GM transformations.
     transforms::apply(&mut segments, &mut tag_map, &input.transforms, &input.wires)?;

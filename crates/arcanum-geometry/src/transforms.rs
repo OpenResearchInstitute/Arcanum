@@ -13,9 +13,7 @@ use arcanum_nec_import::{GeometryTransforms, WireDescription};
 use nalgebra::{Matrix3, Vector3};
 
 use crate::errors::GeometryError;
-use crate::mesh::{
-    CurveParams, Segment, TagMap,
-};
+use crate::mesh::{CurveParams, Segment, TagMap};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point
@@ -149,19 +147,37 @@ fn rotation_matrix(rox_deg: f64, roy_deg: f64, roz_deg: f64) -> Matrix3<f64> {
     let rz = deg_to_rad(roz_deg);
 
     let r_x = Matrix3::new(
-        1.0,     0.0,      0.0,
-        0.0,  rx.cos(), -rx.sin(),
-        0.0,  rx.sin(),  rx.cos(),
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        rx.cos(),
+        -rx.sin(),
+        0.0,
+        rx.sin(),
+        rx.cos(),
     );
     let r_y = Matrix3::new(
-        ry.cos(), 0.0, ry.sin(),
-        0.0,      1.0, 0.0,
-       -ry.sin(), 0.0, ry.cos(),
+        ry.cos(),
+        0.0,
+        ry.sin(),
+        0.0,
+        1.0,
+        0.0,
+        -ry.sin(),
+        0.0,
+        ry.cos(),
     );
     let r_z = Matrix3::new(
-        rz.cos(), -rz.sin(), 0.0,
-        rz.sin(),  rz.cos(), 0.0,
-        0.0,       0.0,      1.0,
+        rz.cos(),
+        -rz.sin(),
+        0.0,
+        rz.sin(),
+        rz.cos(),
+        0.0,
+        0.0,
+        0.0,
+        1.0,
     );
 
     r_z * r_y * r_x

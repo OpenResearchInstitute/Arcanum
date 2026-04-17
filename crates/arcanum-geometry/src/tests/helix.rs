@@ -9,8 +9,8 @@
 // the stated expected outputs (one and five turns respectively).
 
 use arcanum_nec_import::{
-    GeometricGround, GeometricGround as NecGeometricGround, GeometryTransforms, GroundType as NecGroundType,
-    HelixWire, MeshInput, WireDescription,
+    GeometricGround, GeometricGround as NecGeometricGround, GeometryTransforms,
+    GroundType as NecGroundType, HelixWire, MeshInput, WireDescription,
 };
 
 use crate::build_mesh;
@@ -55,7 +55,9 @@ fn free_space(wires: Vec<WireDescription>) -> MeshInput {
 fn pec_ground(wires: Vec<WireDescription>) -> MeshInput {
     MeshInput {
         wires,
-        ground: NecGeometricGround { ground_type: NecGroundType::PEC },
+        ground: NecGeometricGround {
+            ground_type: NecGroundType::PEC,
+        },
         gpflag: 1,
         transforms: GeometryTransforms::default(),
     }
@@ -148,7 +150,15 @@ fn v_hel_002_five_turn_endpoint_continuity() {
     let pitch = 0.0628_f64;
     let total_length = 5.0 * pitch;
     let (mesh, _warnings) = build_mesh(
-        free_space(vec![helix_wire(1, 40, pitch, total_length, 0.05, 0.05, 0.001)]),
+        free_space(vec![helix_wire(
+            1,
+            40,
+            pitch,
+            total_length,
+            0.05,
+            0.05,
+            0.001,
+        )]),
         None,
     )
     .expect("build_mesh failed");
@@ -196,7 +206,15 @@ fn v_hel_003_helix_over_pec_ground() {
     let pitch = 0.0628_f64;
     let total_length = 2.0 * pitch;
     let (mesh, _warnings) = build_mesh(
-        pec_ground(vec![helix_wire(1, 16, pitch, total_length, 0.05, 0.05, 0.001)]),
+        pec_ground(vec![helix_wire(
+            1,
+            16,
+            pitch,
+            total_length,
+            0.05,
+            0.05,
+            0.001,
+        )]),
         None,
     )
     .expect("build_mesh failed");

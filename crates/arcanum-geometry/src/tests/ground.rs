@@ -17,11 +17,25 @@ use super::approx_eq;
 fn gw(
     tag: u32,
     n: u32,
-    x1: f64, y1: f64, z1: f64,
-    x2: f64, y2: f64, z2: f64,
+    x1: f64,
+    y1: f64,
+    z1: f64,
+    x2: f64,
+    y2: f64,
+    z2: f64,
     radius: f64,
 ) -> WireDescription {
-    WireDescription::Straight(StraightWire { tag, segment_count: n, x1, y1, z1, x2, y2, z2, radius })
+    WireDescription::Straight(StraightWire {
+        tag,
+        segment_count: n,
+        x1,
+        y1,
+        z1,
+        x2,
+        y2,
+        z2,
+        radius,
+    })
 }
 
 fn input_with_ground(wires: Vec<WireDescription>, ground_type: NecGroundType) -> MeshInput {
@@ -79,7 +93,11 @@ fn v_gnd_002_pec_ground_image_generation() {
     // (Note: the bottom segment starts at z=0 — it will get an image since z_end != 0.)
     let real_count = mesh.real_segment_count();
     let image_count = mesh.image_segment_count();
-    assert_eq!(real_count + image_count, 8, "expected 8 total segments (4 real + 4 image)");
+    assert_eq!(
+        real_count + image_count,
+        8,
+        "expected 8 total segments (4 real + 4 image)"
+    );
     assert_eq!(real_count, 4);
     assert_eq!(image_count, 4);
 
@@ -130,13 +148,22 @@ fn v_gnd_003_lossy_ground_params_stored() {
     .expect("build_mesh failed");
 
     assert_eq!(mesh.ground.ground_type, GroundType::Lossy);
-    assert!(!mesh.ground.images_generated, "lossy ground must not generate images");
+    assert!(
+        !mesh.ground.images_generated,
+        "lossy ground must not generate images"
+    );
     assert_eq!(mesh.image_segment_count(), 0);
     assert_eq!(mesh.real_segment_count(), 4);
 
     // Electrical parameters stored for Phase 2.
-    approx_eq!(mesh.ground.conductivity.expect("conductivity missing"), 0.005);
-    approx_eq!(mesh.ground.permittivity.expect("permittivity missing"), 13.0);
+    approx_eq!(
+        mesh.ground.conductivity.expect("conductivity missing"),
+        0.005
+    );
+    approx_eq!(
+        mesh.ground.permittivity.expect("permittivity missing"),
+        13.0
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,18 +184,21 @@ fn v_gnd_004_wire_in_ground_plane() {
     .expect("build_mesh failed");
 
     // No image segments — wire is its own image.
-    assert_eq!(mesh.image_segment_count(), 0, "no images for wire in ground plane");
+    assert_eq!(
+        mesh.image_segment_count(),
+        0,
+        "no images for wire in ground plane"
+    );
     assert_eq!(mesh.real_segment_count(), 4);
     // No junctions — single wire, no images, no cross-wire connections.
     assert!(mesh.junctions.is_empty());
 
     // Warning emitted.
     let warn_vec = warnings.into_vec();
-    assert!(
-        !warn_vec.is_empty(),
-        "expected WireInGroundPlane warning"
-    );
+    assert!(!warn_vec.is_empty(), "expected WireInGroundPlane warning");
     use crate::errors::GeometryWarningKind;
-    let has_warn = warn_vec.iter().any(|w| w.kind == GeometryWarningKind::WireInGroundPlane);
+    let has_warn = warn_vec
+        .iter()
+        .any(|w| w.kind == GeometryWarningKind::WireInGroundPlane);
     assert!(has_warn, "expected WireInGroundPlane warning kind");
 }

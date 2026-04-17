@@ -58,9 +58,11 @@ fn free_space(wires: Vec<WireDescription>) -> MeshInput {
 #[test]
 fn v_lin_001_two_segment_dipole() {
     // GW 1 2 0.0 0.0 -0.25 0.0 0.0 0.25 0.001
-    let (mesh, _warnings) =
-        build_mesh(free_space(vec![gw(1, 2, 0.0, 0.0, -0.25, 0.0, 0.0, 0.25, 0.001)]), None)
-            .expect("build_mesh failed");
+    let (mesh, _warnings) = build_mesh(
+        free_space(vec![gw(1, 2, 0.0, 0.0, -0.25, 0.0, 0.0, 0.25, 0.001)]),
+        None,
+    )
+    .expect("build_mesh failed");
 
     assert_eq!(mesh.segments.len(), 2, "expected 2 segments");
 
@@ -113,9 +115,18 @@ fn v_lin_001_two_segment_dipole() {
     // an implicit within-wire segment boundary, not a cross-wire junction).
     // Both outer endpoints (z=-0.25 and z=0.25) are free.
     use crate::mesh::EndpointSide;
-    assert!(mesh.junctions.is_empty(), "intra-wire midpoint should not be a junction");
-    assert!(mesh.junction_at(0, &EndpointSide::Start).is_none(), "seg 0 start should be free");
-    assert!(mesh.junction_at(1, &EndpointSide::End).is_none(),   "seg 1 end should be free");
+    assert!(
+        mesh.junctions.is_empty(),
+        "intra-wire midpoint should not be a junction"
+    );
+    assert!(
+        mesh.junction_at(0, &EndpointSide::Start).is_none(),
+        "seg 0 start should be free"
+    );
+    assert!(
+        mesh.junction_at(1, &EndpointSide::End).is_none(),
+        "seg 1 end should be free"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,9 +136,11 @@ fn v_lin_001_two_segment_dipole() {
 #[test]
 fn v_lin_002_single_segment_x_axis() {
     // GW 1 1 0.0 0.0 0.0 1.0 0.0 0.0 0.005
-    let (mesh, _warnings) =
-        build_mesh(free_space(vec![gw(1, 1, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.005)]), None)
-            .expect("build_mesh failed");
+    let (mesh, _warnings) = build_mesh(
+        free_space(vec![gw(1, 1, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.005)]),
+        None,
+    )
+    .expect("build_mesh failed");
 
     assert_eq!(mesh.segments.len(), 1, "expected 1 segment");
 
@@ -156,7 +169,10 @@ fn v_lin_002_single_segment_x_axis() {
     assert_eq!(mesh.tag_map.segment_count(1), Some(1));
 
     // No junctions (single segment, two free endpoints).
-    assert!(mesh.junctions.is_empty(), "expected no junctions for single segment");
+    assert!(
+        mesh.junctions.is_empty(),
+        "expected no junctions for single segment"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,14 +230,26 @@ fn v_lin_003_two_wires_shared_endpoint() {
     assert!(!j.is_self_loop);
 
     use crate::mesh::EndpointSide;
-    let has_seg2_end   = j.endpoints.iter().any(|ep| ep.segment_index == 2 && ep.side == EndpointSide::End);
-    let has_seg3_start = j.endpoints.iter().any(|ep| ep.segment_index == 3 && ep.side == EndpointSide::Start);
-    assert!(has_seg2_end,   "junction missing seg 2 End");
+    let has_seg2_end = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 2 && ep.side == EndpointSide::End);
+    let has_seg3_start = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 3 && ep.side == EndpointSide::Start);
+    assert!(has_seg2_end, "junction missing seg 2 End");
     assert!(has_seg3_start, "junction missing seg 3 Start");
 
     // Free endpoints at (0,0,0) and (2,0,0).
-    assert!(mesh.junction_at(0, &EndpointSide::Start).is_none(), "seg 0 start should be free");
-    assert!(mesh.junction_at(5, &EndpointSide::End).is_none(),   "seg 5 end should be free");
+    assert!(
+        mesh.junction_at(0, &EndpointSide::Start).is_none(),
+        "seg 0 start should be free"
+    );
+    assert!(
+        mesh.junction_at(5, &EndpointSide::End).is_none(),
+        "seg 5 end should be free"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -278,16 +306,35 @@ fn v_lin_004_t_junction_three_wires() {
     // Total: 4 segment endpoints, representing 3 wires (valence 3).
     assert_eq!(mesh.junctions.len(), 1, "expected 1 junction");
     let j = &mesh.junctions[0];
-    assert_eq!(j.endpoints.len(), 4, "T-junction should have 4 segment endpoints (3 wires)");
+    assert_eq!(
+        j.endpoints.len(),
+        4,
+        "T-junction should have 4 segment endpoints (3 wires)"
+    );
     assert!(!j.is_self_loop);
 
     use crate::mesh::EndpointSide;
-    let has_seg0_end   = j.endpoints.iter().any(|ep| ep.segment_index == 0 && ep.side == EndpointSide::End);
-    let has_seg1_start = j.endpoints.iter().any(|ep| ep.segment_index == 1 && ep.side == EndpointSide::Start);
-    let has_seg2_start = j.endpoints.iter().any(|ep| ep.segment_index == 2 && ep.side == EndpointSide::Start);
-    let has_seg4_start = j.endpoints.iter().any(|ep| ep.segment_index == 4 && ep.side == EndpointSide::Start);
-    assert!(has_seg0_end,   "junction missing seg 0 End (wire 1 midpoint)");
-    assert!(has_seg1_start, "junction missing seg 1 Start (wire 1 midpoint)");
+    let has_seg0_end = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 0 && ep.side == EndpointSide::End);
+    let has_seg1_start = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 1 && ep.side == EndpointSide::Start);
+    let has_seg2_start = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 2 && ep.side == EndpointSide::Start);
+    let has_seg4_start = j
+        .endpoints
+        .iter()
+        .any(|ep| ep.segment_index == 4 && ep.side == EndpointSide::Start);
+    assert!(has_seg0_end, "junction missing seg 0 End (wire 1 midpoint)");
+    assert!(
+        has_seg1_start,
+        "junction missing seg 1 Start (wire 1 midpoint)"
+    );
     assert!(has_seg2_start, "junction missing seg 2 Start (wire 2)");
     assert!(has_seg4_start, "junction missing seg 4 Start (wire 3)");
 }
@@ -299,8 +346,10 @@ fn v_lin_004_t_junction_three_wires() {
 #[test]
 fn v_lin_005_zero_length_wire_error() {
     // GW 1 4 0.5 0.5 0.5 0.5 0.5 0.5 0.001  — start == end
-    let result =
-        build_mesh(free_space(vec![gw(1, 4, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.001)]), None);
+    let result = build_mesh(
+        free_space(vec![gw(1, 4, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.001)]),
+        None,
+    );
 
     let err = result.expect_err("expected hard error for zero-length wire");
     assert_eq!(
@@ -319,8 +368,10 @@ fn v_lin_005_zero_length_wire_error() {
 #[test]
 fn v_lin_006_zero_segment_count_error() {
     // GW 1 0 0.0 0.0 0.0 1.0 0.0 0.0 0.001  — SEGS = 0
-    let result =
-        build_mesh(free_space(vec![gw(1, 0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.001)]), None);
+    let result = build_mesh(
+        free_space(vec![gw(1, 0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.001)]),
+        None,
+    );
 
     let err = result.expect_err("expected hard error for zero segment count");
     assert_eq!(
