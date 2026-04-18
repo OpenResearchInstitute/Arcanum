@@ -10,6 +10,7 @@
 // rustc flags as unexpected. This is a known pyo3 issue; allow it crate-wide.
 #![allow(unexpected_cfgs)]
 
+use arcanum_geometry as geo;
 use arcanum_nec_import as nec;
 use pyo3::prelude::*;
 
@@ -843,6 +844,368 @@ fn parse_file(py: Python<'_>, path: &str) -> PyResult<(PySimulationInput, Vec<Py
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GeometryError — Python exception raised on hard geometry error
+// ─────────────────────────────────────────────────────────────────────────────
+
+pyo3::create_exception!(
+    arcanum,
+    GeometryError,
+    pyo3::exceptions::PyException,
+    "Hard geometry error from the Phase 1 mesh builder.\n\n\
+     Attributes:\n\
+     - kind (str): error category (e.g. 'ZeroLengthWire')\n\
+     - wire_index (int): 0-based wire index where the error was detected\n\
+     - message (str): human-readable description"
+);
+
+fn geo_err_to_pyerr(py: Python<'_>, e: geo::GeometryError) -> PyErr {
+    let err = GeometryError::new_err(format!(
+        "[wire {}] {}: {}",
+        e.wire_index,
+        e.kind.as_str(),
+        e.message
+    ));
+    {
+        let exc = err.value_bound(py);
+        let _ = exc.setattr("kind", e.kind.as_str());
+        let _ = exc.setattr("wire_index", e.wire_index);
+        let _ = exc.setattr("message", e.message.as_str());
+    }
+    err
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GeometryWarning
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[pyclass(name = "GeometryWarning")]
+struct PyGeometryWarning {
+    inner: geo::GeometryWarning,
+}
+
+#[pymethods]
+impl PyGeometryWarning {
+    /// Warning category string (e.g. 'NearCoincidentEndpoints').
+    #[getter]
+    fn kind(&self) -> &str {
+        self.inner.kind.as_str()
+    }
+
+    /// Human-readable description.
+    #[getter]
+    fn message(&self) -> &str {
+        &self.inner.message
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "GeometryWarning(kind={:?}, message={:?})",
+            self.inner.kind.as_str(),
+            self.inner.message
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Segment
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[pyclass(name = "Segment")]
+struct PySegment {
+    inner: geo::Segment,
+}
+
+#[pymethods]
+impl PySegment {
+    /// Precomputed start point as (x, y, z) in meters.
+    #[getter]
+    fn start(&self) -> (f64, f64, f64) {
+        let p = self.inner.start();
+        (p.x, p.y, p.z)
+    }
+
+    /// Precomputed end point as (x, y, z) in meters.
+    #[getter]
+    fn end(&self) -> (f64, f64, f64) {
+        let p = self.inner.end();
+        (p.x, p.y, p.z)
+    }
+
+    /// Wire cross-section radius in meters. Not scaled by GS.
+    #[getter]
+    fn wire_radius(&self) -> f64 {
+        self.inner.wire_radius
+    }
+
+    /// NEC wire tag number.
+    #[getter]
+    fn tag(&self) -> u32 {
+        self.inner.tag
+    }
+
+    /// Global index of this segment in the mesh segment list.
+    #[getter]
+    fn segment_index(&self) -> usize {
+        self.inner.segment_index
+    }
+
+    /// Index of the wire (GW/GA/GH card) this segment belongs to.
+    #[getter]
+    fn wire_index(&self) -> usize {
+        self.inner.wire_index
+    }
+
+    /// True if this is a PEC ground image segment (not addressable by EX/LD).
+    #[getter]
+    fn is_image(&self) -> bool {
+        self.inner.is_image
+    }
+
+    /// Curve type string: 'Linear', 'Arc', or 'Helix'.
+    #[getter]
+    fn curve_type(&self) -> &str {
+        match &self.inner.curve {
+            geo::CurveParams::Linear(_) => "Linear",
+            geo::CurveParams::Arc(_) => "Arc",
+            geo::CurveParams::Helix(_) => "Helix",
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        let s = self.inner.start();
+        let e = self.inner.end();
+        format!(
+            "Segment(index={}, tag={}, type={}, ({:.4},{:.4},{:.4})→({:.4},{:.4},{:.4}){})",
+            self.inner.segment_index,
+            self.inner.tag,
+            match &self.inner.curve {
+                geo::CurveParams::Linear(_) => "Linear",
+                geo::CurveParams::Arc(_) => "Arc",
+                geo::CurveParams::Helix(_) => "Helix",
+            },
+            s.x,
+            s.y,
+            s.z,
+            e.x,
+            e.y,
+            e.z,
+            if self.inner.is_image { " [image]" } else { "" }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Junction
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[pyclass(name = "Junction")]
+struct PyJunction {
+    inner: geo::Junction,
+}
+
+#[pymethods]
+impl PyJunction {
+    /// Unique index of this junction.
+    #[getter]
+    fn junction_index(&self) -> usize {
+        self.inner.junction_index
+    }
+
+    /// All segment endpoints at this junction as list of (segment_index, side) tuples.
+    /// side is 'Start' or 'End'.
+    #[getter]
+    fn endpoints(&self) -> Vec<(usize, String)> {
+        self.inner
+            .endpoints
+            .iter()
+            .map(|ep| {
+                let side = match ep.side {
+                    geo::EndpointSide::Start => "Start",
+                    geo::EndpointSide::End => "End",
+                };
+                (ep.segment_index, side.to_string())
+            })
+            .collect()
+    }
+
+    /// True if this junction is a self-loop (start and end of the same wire).
+    #[getter]
+    fn is_self_loop(&self) -> bool {
+        self.inner.is_self_loop
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Junction(index={}, endpoints={}, is_self_loop={})",
+            self.inner.junction_index,
+            self.inner.endpoints.len(),
+            self.inner.is_self_loop
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GroundDescriptor
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[pyclass(name = "GroundDescriptor")]
+struct PyGroundDescriptor {
+    inner: geo::GroundDescriptor,
+}
+
+#[pymethods]
+impl PyGroundDescriptor {
+    /// Ground type string: 'None', 'Lossy', or 'PEC'.
+    #[getter]
+    fn ground_type(&self) -> &str {
+        match self.inner.ground_type {
+            geo::GroundType::None => "None",
+            geo::GroundType::Lossy => "Lossy",
+            geo::GroundType::PEC => "PEC",
+        }
+    }
+
+    /// Electrical conductivity in S/m. None for PEC or free space.
+    #[getter]
+    fn conductivity(&self) -> Option<f64> {
+        self.inner.conductivity
+    }
+
+    /// Relative permittivity εr. None for PEC or free space.
+    #[getter]
+    fn permittivity(&self) -> Option<f64> {
+        self.inner.permittivity
+    }
+
+    /// True if Phase 1 generated PEC image segments for this mesh.
+    #[getter]
+    fn images_generated(&self) -> bool {
+        self.inner.images_generated
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "GroundDescriptor(ground_type={:?}, images_generated={})",
+            match self.inner.ground_type {
+                geo::GroundType::None => "None",
+                geo::GroundType::Lossy => "Lossy",
+                geo::GroundType::PEC => "PEC",
+            },
+            self.inner.images_generated
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mesh
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[pyclass(name = "Mesh")]
+struct PyMesh {
+    inner: geo::Mesh,
+}
+
+#[pymethods]
+impl PyMesh {
+    /// All segments in order: real segments first, image segments last.
+    #[getter]
+    fn segments(&self) -> Vec<PySegment> {
+        self.inner
+            .segments
+            .iter()
+            .cloned()
+            .map(|s| PySegment { inner: s })
+            .collect()
+    }
+
+    /// All junctions detected in the mesh.
+    #[getter]
+    fn junctions(&self) -> Vec<PyJunction> {
+        self.inner
+            .junctions
+            .iter()
+            .cloned()
+            .map(|j| PyJunction { inner: j })
+            .collect()
+    }
+
+    /// Ground plane descriptor.
+    #[getter]
+    fn ground(&self) -> PyGroundDescriptor {
+        PyGroundDescriptor {
+            inner: self.inner.ground.clone(),
+        }
+    }
+
+    /// Tag map entries as (tag, first_segment_index, last_segment_index) tuples.
+    /// Image segments are excluded.
+    #[getter]
+    fn tag_entries(&self) -> Vec<(u32, usize, usize)> {
+        self.inner.tag_map.iter().collect()
+    }
+
+    /// Total number of segments (real + image).
+    #[getter]
+    fn segment_count(&self) -> usize {
+        self.inner.segments.len()
+    }
+
+    /// Number of real (non-image) segments.
+    #[getter]
+    fn real_segment_count(&self) -> usize {
+        self.inner.real_segment_count()
+    }
+
+    /// Number of PEC image segments.
+    #[getter]
+    fn image_segment_count(&self) -> usize {
+        self.inner.image_segment_count()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Mesh(segments={}, real={}, images={}, junctions={})",
+            self.inner.segments.len(),
+            self.inner.real_segment_count(),
+            self.inner.image_segment_count(),
+            self.inner.junctions.len()
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Geometry functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Build a discretized segment mesh from a parsed MeshInput.
+///
+/// Returns ``(Mesh, [GeometryWarning, ...])`` on success.
+/// Raises ``GeometryError`` on any hard error (zero-length wire, etc.).
+///
+/// ``ground_electrical`` carries the lossy GN card parameters (conductivity,
+/// permittivity). Pass ``None`` (the default) for PEC or free-space models.
+#[pyfunction]
+#[pyo3(signature = (mesh_input, ground_electrical=None))]
+fn build_mesh(
+    py: Python<'_>,
+    mesh_input: &PyMeshInput,
+    ground_electrical: Option<&PyGroundElectrical>,
+) -> PyResult<(PyMesh, Vec<PyGeometryWarning>)> {
+    let ge = ground_electrical.map(|g| g.inner.clone());
+    match geo::build_mesh(mesh_input.inner.clone(), ge) {
+        Ok((mesh, warnings)) => {
+            let py_warnings = warnings
+                .into_vec()
+                .into_iter()
+                .map(|w| PyGeometryWarning { inner: w })
+                .collect();
+            Ok((PyMesh { inner: mesh }, py_warnings))
+        }
+        Err(e) => Err(geo_err_to_pyerr(py, e)),
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Module registration
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -851,8 +1214,9 @@ fn parse_file(py: Python<'_>, path: &str) -> PyResult<(PySimulationInput, Vec<Py
 fn arcanum(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = m.py();
 
-    // Exception type
+    // Exception types
     m.add("ParseError", py.get_type_bound::<ParseError>())?;
+    m.add("GeometryError", py.get_type_bound::<GeometryError>())?;
 
     // NEC import types
     m.add_class::<PyParseWarning>()?;
@@ -874,6 +1238,16 @@ fn arcanum(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // NEC import functions
     m.add_function(wrap_pyfunction!(parse, m)?)?;
     m.add_function(wrap_pyfunction!(parse_file, m)?)?;
+
+    // Geometry types
+    m.add_class::<PyGeometryWarning>()?;
+    m.add_class::<PySegment>()?;
+    m.add_class::<PyJunction>()?;
+    m.add_class::<PyGroundDescriptor>()?;
+    m.add_class::<PyMesh>()?;
+
+    // Geometry functions
+    m.add_function(wrap_pyfunction!(build_mesh, m)?)?;
 
     Ok(())
 }

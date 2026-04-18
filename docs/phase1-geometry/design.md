@@ -3,7 +3,7 @@
 **Project:** Arcanum  
 **Document:** `docs/phase1-geometry/design.md`  
 **Status:** DRAFT  
-**Revision:** 0.1
+**Revision:** 0.2
 
 ---
 
@@ -93,7 +93,18 @@ One exception: if N is specified as 0 in the input deck, Phase 1 must return a p
 
 A junction is a point in space where two or more wire endpoints meet. Junctions are how antenna structures are connected. Such as a T-match, a driven element fed at the center, a Yagi boom with elements attached. NEC files do not declare junctions explicitly. They are inferred by finding wire endpoints that are geometrically coincident within a tolerance.
 
-### 5.2 Junction Detection
+### 5.2 What a Junction Is Not
+
+Not every pair of coincident endpoints qualifies as a junction. Within a single wire card (`GW`, `GA`, or `GH`), the end of segment k and the start of segment k+1 are always connected — that is the definition of discretization. These **intra-wire adjacent boundaries** are implicit in the segment ordering and are never recorded as explicit junctions in the junction map.
+
+Only two cases produce a junction record:
+
+1. **Cross-wire connection** — an endpoint of one wire card is geometrically coincident with an endpoint of a different wire card.
+2. **Self-loop closure** — the last segment end of a wire is coincident with its own first segment start (a closed loop antenna such as `GA` with 360°).
+
+This distinction matters for valence counting: the midpoint of a 2-segment dipole (`GW 1 2 ...`) has no junction record even though two segment endpoints meet there. It is addressable by an `EX` card via `(tag, segment)` directly.
+
+### 5.3 Junction Detection
 
 Two endpoints are considered coincident if their distance is less than a tolerance `ε`. The default tolerance is:
 
@@ -101,19 +112,19 @@ Two endpoints are considered coincident if their distance is less than a toleran
 ε = min(radius_a, radius_b) × 0.01
 ```
 
-This is intentionally conservative. Phase 1 should warn when endpoints are close but not coincident (distance between `ε` and `10ε`), as this often indicates a modeling error in the input deck. Becasue we are helpful. 
+This is intentionally conservative. Phase 1 should warn when endpoints are close but not coincident (distance between `ε` and `10ε`), as this often indicates a modeling error in the input deck. Because we are helpful.
 
-### 5.3 The Junction Map
+### 5.4 The Junction Map
 
 The junction map records, for each junction point, the list of segment endpoints that meet there. This is the connectivity graph Phase 2 uses to enforce current continuity at junctions (Kirchhoff's current law in the MoM formulation).
 
 Each junction is assigned a unique index. The map is bidirectional. Given a segment endpoint, you can look up which junction it belongs to. Given a junction, you can enumerate all connected segment endpoints.
 
-### 5.4 Degenerate Cases
+### 5.5 Degenerate Cases
 
 - **Isolated wire endpoint** — an endpoint that belongs to no junction. Valid — monopoles and open-ended dipoles have free endpoints.
 - **Two-wire junction** — the normal case for connected antennas.
-- **Three-or-more-wire junction** — valid, occurs in log-periodic arrays, feed networks, and complex structures. Phase 1 must handle arbitrary valence.
+- **Three-or-more-wire junction** — valid, occurs in log-periodic arrays, feed networks, and complex structures. Phase 1 must handle arbitrary valence. Valence is counted in *wires*, not segment endpoints: a wire that passes through a junction (its midpoint is at the junction point) contributes 1 to valence even though it places 2 segment endpoints into the junction record.
 - **Self-loop** — a wire whose start and end endpoints are coincident. Valid for loop antennas. Phase 1 should detect and flag these explicitly rather than treating them as a two-wire junction.
 
 Any other problem cases that may come up in development that we missed would go in the above list. 
