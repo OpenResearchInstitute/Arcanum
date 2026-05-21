@@ -205,6 +205,21 @@ The analytic part K_singular is chosen to match the singular behavior of K_exact
 
 The specific form of K_singular and its analytic integral are derived in terms of the segment geometry and wire radius. See the Fikioris references for the exact kernel self-impedance extraction.
 
+> **OPEN ITEM 5.2-A — Self-impedance singularity extraction formula (BLOCKER)**
+>
+> The explicit analytic form of K_singular for the self-element case must be written here before
+> `compute_self()` can be implemented. This is the highest-risk item in Phase 2: an incorrect
+> extraction formula produces systematically wrong diagonal elements that corrupt the entire
+> solution through Phase 3. Required content:
+>
+> 1. The analytic form of K_singular(s, s') for a straight segment, in terms of Δ and a
+> 2. The analytic form for arc and helix segments (or a proof that the straight segment form
+>    applies in the local tangent frame)
+> 3. The closed-form integral ∫ K_singular ds that is substituted for the smooth remainder
+> 4. The derivation or citation to the specific equation number in Fikioris & Wu
+>
+> Tracking: resolve this section before opening a Phase 2 implementation PR.
+
 ### 5.3 Thin-Wire Limit of Self-Impedance
 
 In the thin-wire limit (a → 0), the exact kernel self-impedance converges to the known thin-wire self-impedance formula. For a straight segment of length Δ:
@@ -226,6 +241,19 @@ The logarithmic dependence on a/Δ confirms that the imaginary part of self-impe
 For adjacent segments m and m+1 (sharing one endpoint), the minimum axis-to-axis distance R_axis can become very small as the integration variables s and s' approach the shared endpoint. With the exact kernel, R_surf ≥ a, so there is no true singularity — but for small a, the integrand is again sharply peaked near the shared endpoint.
 
 The same singularity extraction approach applies. Identify the near-singular behavior analytically, subtract it, integrate the remainder with standard quadrature, add the analytic contribution.
+
+> **OPEN ITEM 6.1-A — Near-neighbor singularity extraction formula (BLOCKER)**
+>
+> The explicit extraction formula for adjacent segments must be written here before
+> `compute_near_neighbor()` can be implemented. Required content:
+>
+> 1. The analytic form of the near-singular behavior as s → s_shared (the shared endpoint)
+> 2. The extracted analytic integral and its closed form
+> 3. The split criterion: how far from the shared endpoint does the near-singular treatment
+>    apply? (The design doc uses `near_singular_distance_ratio` — specify what it is measuring)
+> 4. Citation to specific equation in Fikioris & Wu
+>
+> Tracking: resolve before opening a Phase 2 implementation PR.
 
 ### 6.2 Extent of Near-Neighbor Treatment
 
@@ -258,6 +286,27 @@ The default convergence threshold is ε_quad = 1×10⁻¹⁰ (10 significant fig
 ### 7.3 Azimuthal Integration for Exact Kernel
 
 The azimuthal integral in K_exact is evaluated with a fixed-order Gauss-Legendre rule on [0, 2π]. For most wire radii (a ≤ Δ/2), order 16 (16 azimuthal points) achieves 8 significant figures in K_exact. For a/Δ > 0.5 (very thick wires), higher azimuthal order may be required.
+
+### 7.4 Perpendicular Frame Computation for Exact Kernel
+
+> **OPEN ITEM 7.4-A — Perpendicular frame (n̂_r, n̂_φ) for each curve type (BLOCKER)**
+>
+> The exact kernel evaluation (design.md Section 6.4) requires two unit vectors perpendicular
+> to the wire tangent t̂ at each source point s'. These must be specified for each segment type
+> before `evaluate_exact_kernel()` can be implemented. Required content:
+>
+> 1. **Straight segment:** t̂ is constant. Any consistent perpendicular frame works; specify
+>    the canonical choice (e.g., Gram-Schmidt against ẑ, with fallback when t̂ ∥ ẑ).
+> 2. **Arc segment:** t̂ varies. The principal normal n̂ = (dt̂/ds)/|dt̂/ds| is well-defined
+>    everywhere on an arc (non-zero curvature). Specify whether the Frenet-Serret frame is
+>    used and what n̂_r and n̂_φ map to in that frame.
+> 3. **Helix segment:** Same as arc — Frenet-Serret frame is the natural choice. Specify the
+>    principal normal and binormal expressions in terms of the helix parameters (pitch, radius).
+> 4. **Frame continuity at segment boundaries:** The azimuthal angle φ in the exact kernel
+>    integral is a dummy variable, so inter-segment frame continuity is not required for
+>    correctness. Confirm this explicitly.
+>
+> Tracking: resolve before opening a Phase 2 implementation PR.
 
 ---
 
@@ -346,7 +395,8 @@ For self and near-neighbor elements (|m-n| ≤ 1), singularity extraction is app
 
 - Harrington, R.F. — *Field Computation by Moment Methods* (1968) — MoM formulation; Sections 3-4 directly relevant, cannot be overstated
 - Fikioris, G. & Wu, T.T. — "On the Application of Numerical Methods to Hallén's Equation" — exact kernel self-impedance extraction essentially lifted
-- Vande Ginste, D. et al. — conformal MoM basis function formulations for curved wires essentially lifted
+- Champagne, N.J., Williams, J.T. & Wilton, D.R. — "The Use of Curved Segments for Numerically Modeling Thin Wire Antennas and Scatterers," IEEE TAP, 1992 — foundational CMoM curved-wire formulation
+- Rogers, S.D. & Butler, C.M. — "An Efficient Curved-Wire Integral Equation Solution Technique," IEEE TAP, 2001 — exact kernel treatment for curved wires
 - Burke & Poggio — *NEC-2 Method of Moments Code* (1981) — thin-wire kernel formulation (the baseline we improve upon!)
 - `docs/phase1-geometry/math.md` — parametric forms r(τ), r'(τ), |r'(τ)| used in arc length elements
 - `docs/phase2-matrix-fill/validation.md` — validation cases whose expected values are derived from this document

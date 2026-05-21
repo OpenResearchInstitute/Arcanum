@@ -153,7 +153,7 @@ The thin-wire self-impedance for a straight segment of length Δ in the limit a 
 Z_thin_wire ≈ jωμ₀Δ/(2π) × [ln(2Δ/a) - 1] + radiation term
 ```
 
-(See `math.md` Section N for derivation.)
+(See `math.md` Section 5.3 for derivation.)
 
 **Pass criterion:** The difference |Z_exact[0,0] - Z_thin[0,0]| decreases monotonically as a decreases through the test radii. At a = Δ/10000, the difference must be < 1% of |Z_thin_wire[0,0]|.
 

@@ -114,6 +114,26 @@ Requires near-singular quadrature. Two elements per segment (except at wire ends
 
 Note: "Adjacent in the mesh" means adjacent in the global segment index, which corresponds to adjacent along the same wire. Segments from different wires that happen to be geometrically close but are not sequentially adjacent in the mesh are treated as regular elements. This is a simplification. Future work may extend near-singular treatment to geometrically proximate non-sequential segments, if there's an advantage.
 
+> **OPEN ITEM 4.2-A — Cross-wire junction near-neighbor treatment**
+>
+> When two segments from different wire cards share a junction endpoint (e.g., the last segment
+> of wire 1 is global index 2, and the first segment of wire 2 is global index 3), the
+> `|m-n| = 1` rule correctly classifies them as near-neighbor. However, the singularity
+> extraction formula in math.md Sections 5 and 6 is derived for the intra-wire case. A
+> cross-wire junction may have a bend (discontinuous tangent), and the same extraction may not
+> apply without modification.
+>
+> The Phase 1 junction map already identifies exactly which segment endpoint pairs are
+> cross-wire. A decision is needed before implementation:
+>
+> Option A: Apply the same intra-wire extraction formula and document the approximation.
+> Option B: Detect cross-wire adjacent pairs via the junction map and apply a separate
+>           (to-be-derived) treatment.
+> Option C: Treat cross-wire adjacent pairs as regular elements (no extraction), accepting
+>           reduced accuracy at wire junctions.
+>
+> Tracking: decide before opening a Phase 2 implementation PR.
+
 ### 4.3 Regular Elements
 
 ```
@@ -304,39 +324,55 @@ Phase 2 does not:
 
 ## 10. Open Items
 
-The following must be resolved before Phase 2 implementation begins:
+The following must be resolved before Phase 2 implementation begins. Each has a corresponding
+`OPEN ITEM` marker in `math.md` or above in this document with the required content specified.
 
-1. **Self-impedance singularity extraction formula.** The specific analytic form of K_singular for the self-element case must be derived and written into `math.md` Section 5.2. This is the highest-risk item because an incorrect extraction formula produces systematically wrong diagonal elements that corrupt the entire solution.
+1. **Self-impedance singularity extraction formula** — see `math.md` OPEN ITEM 5.2-A.
+   The analytic form of K_singular for the self-element case must be written into `math.md`
+   Section 5.2. This is the highest-risk item because an incorrect extraction formula produces
+   systematically wrong diagonal elements that corrupt the entire solution.
 
-2. **Near-neighbor extraction formula.** Same requirement for |m-n| = 1 elements. See `math.md` Section 6.
+2. **Near-neighbor extraction formula** — see `math.md` OPEN ITEM 6.1-A.
+   The extraction formula for adjacent segments must be written into `math.md` Section 6
+   before `compute_near_neighbor()` can be implemented.
 
-3. **Normal vector computation for exact kernel.** The vectors n̂_r and n̂_φ (perpendicular to the wire axis at each point) must be computed from the segment's tangent vector. For a helix segment, the Frenet-Serret frame is the natural choice. The computation of the principal normal and binormal from t̂ must be specified for each curve type. This is a `math.md` item.
+3. **Normal vector computation for exact kernel** — see `math.md` OPEN ITEM 7.4-A.
+   The perpendicular frame (n̂_r, n̂_φ) computation for each segment type (straight, arc,
+   helix) must be written into `math.md` Section 7.4.
 
-4. **Unsafe write pattern review.** The parallel write pattern in Step 3 of Section 5 uses potentially unsafe raw pointer access to write to non-overlapping matrix locations. This must be reviewed by an experienced Rust contributor before implementation to confirm the "unsafety contract" is correctly stated and upheld. Risky part of the business. 
+4. **Cross-wire junction near-neighbor treatment** — see OPEN ITEM 4.2-A above.
+   A decision is needed on how to handle the `|m-n| = 1` case when the two segments are
+   from different wire cards sharing a junction endpoint.
 
+5. **Unsafe write pattern review.** The parallel write pattern in Step 3 of Section 5 uses
+   raw pointer access to write to non-overlapping matrix locations. This must be reviewed
+   by an experienced Rust contributor before implementation to confirm the unsafety contract
+   is correctly stated and upheld.
 ---
 
 ## 11. Repository Layout
 
+The crate is `crates/arcanum-matrix-fill/`. Source files are flat under `src/`, consistent with the Phase 1 crate (`crates/arcanum-geometry/src/`).
+
 ```
-src/
-├── matrix_fill/
-│   ├── mod.rs                ← pub fn fill_impedance_matrix()
-│   ├── classify.rs           ← element classification
-│   ├── quadrature.rs         ← QuadratureTables, GL node/weight precomputation
-│   ├── exact_kernel.rs       ← evaluate_exact_kernel()
-│   ├── regular.rs            ← compute_regular()
-│   ├── near_neighbor.rs      ← compute_near_neighbor()
-│   ├── self_element.rs       ← compute_self()
-│   ├── config.rs             ← MatrixFillConfig
-│   ├── zmatrix.rs            ← ZMatrix struct
-│   └── tests/
-│       ├── symmetry_tests.rs  ← V-SYM cases
-│       ├── diag_tests.rs      ← V-DIAG cases
-│       ├── thin_wire_tests.rs ← V-THIN cases
-│       ├── quad_tests.rs      ← V-QUAD cases
-│       ├── near_tests.rs      ← V-NEAR cases
-│       └── perf_tests.rs      ← V-PERF cases
+crates/arcanum-matrix-fill/src/
+├── lib.rs               ← pub fn fill_impedance_matrix(); crate entry point
+├── classify.rs          ← element classification (self / near-neighbor / regular)
+├── quadrature.rs        ← QuadratureTables, GL node/weight precomputation
+├── exact_kernel.rs      ← evaluate_exact_kernel()
+├── regular.rs           ← compute_regular()
+├── near_neighbor.rs     ← compute_near_neighbor()
+├── self_element.rs      ← compute_self()
+├── config.rs            ← MatrixFillConfig
+├── zmatrix.rs           ← ZMatrix struct
+└── tests/
+    ├── mod.rs
+    ├── symmetry.rs      ← V-SYM cases
+    ├── diag.rs          ← V-DIAG cases
+    ├── thin_wire.rs     ← V-THIN cases
+    ├── quad.rs          ← V-QUAD cases
+    ├── near.rs          ← V-NEAR cases
+    └── perf.rs          ← V-PERF cases
 ```
 
 ---
