@@ -293,7 +293,7 @@ wire curves away from the observation point. The near-singular subtraction still
 the local tangent frame: near s ≈ s' the curved wire is locally straight, so K_near has the
 same form with the same analytic integral. The curvature correction appears only in K_smooth,
 which is smooth and integrable with standard methods. The precise K_exact for curved segments
-requires the perpendicular frame (n̂_r, n̂_φ); see OPEN ITEM 7.4-A in Section 7.4.
+requires the perpendicular frame (n̂_r, n̂_φ); see Section 7.4 for the construction.
 
 ### 5.3 Thin-Wire Limit of Self-Impedance
 
@@ -421,24 +421,74 @@ The azimuthal integral in K_exact is evaluated with a fixed-order Gauss-Legendre
 
 ### 7.4 Perpendicular Frame Computation for Exact Kernel
 
-> **OPEN ITEM 7.4-A — Perpendicular frame (n̂_r, n̂_φ) for each curve type (BLOCKER)**
->
-> The exact kernel evaluation (design.md Section 6.4) requires two unit vectors perpendicular
-> to the wire tangent t̂ at each source point s'. These must be specified for each segment type
-> before `evaluate_exact_kernel()` can be implemented. Required content:
->
-> 1. **Straight segment:** t̂ is constant. Any consistent perpendicular frame works; specify
->    the canonical choice (e.g., Gram-Schmidt against ẑ, with fallback when t̂ ∥ ẑ).
-> 2. **Arc segment:** t̂ varies. The principal normal n̂ = (dt̂/ds)/|dt̂/ds| is well-defined
->    everywhere on an arc (non-zero curvature). Specify whether the Frenet-Serret frame is
->    used and what n̂_r and n̂_φ map to in that frame.
-> 3. **Helix segment:** Same as arc — Frenet-Serret frame is the natural choice. Specify the
->    principal normal and binormal expressions in terms of the helix parameters (pitch, radius).
-> 4. **Frame continuity at segment boundaries:** The azimuthal angle φ in the exact kernel
->    integral is a dummy variable, so inter-segment frame continuity is not required for
->    correctness. Confirm this explicitly.
->
-> Tracking: resolve before opening a Phase 2 implementation PR.
+**Frame continuity is not required — proof.** The exact kernel azimuthal integral is:
+
+```
+K_exact(s, s') = 1/(2π) ∫₀^{2π} G₀(r_obs, r_axis + a[n̂_r cos φ + n̂_φ sin φ]) dφ
+```
+
+If the frame is rotated by angle α — replacing n̂_r with n̂_r cosα + n̂_φ sinα — the
+integrand becomes G₀(..., φ + α). Since the integration is over a full period [0, 2π],
+the result is identical for any α. Therefore:
+
+**Any orthonormal pair {n̂_r, n̂_φ} perpendicular to t̂ produces the same K_exact.**
+Each segment may use its own independently computed frame. Inter-segment continuity is
+not required and need not be enforced. ✓
+
+**Single construction for all curve types.** Since frame orientation is irrelevant, one
+numerically stable algorithm serves all segment types. Given t̂ at any source point s':
+
+```
+Step 1 — choose reference vector v:
+    v = argmin over {x̂, ŷ, ẑ} of |v · t̂|
+    (the standard basis vector least aligned with t̂)
+
+Step 2 — Gram-Schmidt orthogonalization:
+    n̂_r = (v - (v·t̂) t̂) / |v - (v·t̂) t̂|
+
+Step 3 — right-hand perpendicular:
+    n̂_φ = t̂ × n̂_r
+```
+
+The minimum-component choice in Step 1 guarantees |v - (v·t̂)t̂| ≥ √(2/3) > 0
+for all unit vectors t̂ — no special-case fallback needed.
+
+**Verification by segment type.**
+
+*Straight segment along ẑ:* t̂ = (0, 0, 1). Min-component basis vector: x̂ (or ŷ).
+Taking v = x̂: n̂_r = x̂, n̂_φ = ẑ × x̂ = ŷ. Standard cylindrical frame. ✓
+
+*Arc segment in xy-plane:* t̂(θ) = (−sin θ, cos θ, 0). The z-component of t̂ is zero,
+so v = ẑ is the minimum-component choice. Since ẑ · t̂ = 0:
+
+```
+n̂_r = ẑ
+n̂_φ = t̂ × ẑ = (cos θ, sin θ, 0)    [outward radial direction]
+```
+
+The surface point r_surf = r_axis + a[ẑ cos φ + r̂ sin φ] traces the correct circular
+cross-section perpendicular to t̂ at every θ. ✓
+
+*Helix segment:* t̂ ∝ (−R sin θ, R cos θ, p/2π) where R is the helix radius and p is
+the pitch. For a typical helix (R > p/2π) the z-component of t̂ is the smallest, so
+v = ẑ again. For a steep helix (p/2π > R) the radial component is smallest. The
+algorithm selects the correct v automatically in either case; no closed-form expression
+for the frame is needed — t̂(s') is evaluated numerically from the parametric forms in
+`docs/phase1-geometry/math.md` Sections 4–5, and the three-step construction above
+completes in O(1) per quadrature point. ✓
+
+**Relationship to Frenet-Serret.** For arc and helix segments, the Frenet-Serret
+principal normal n̂_FS = (dt̂/ds)/|dt̂/ds| is also perpendicular to t̂. It would produce
+the same K_exact by the dummy-variable argument above. The minimum-component
+construction is preferred here because it requires only t̂ (already available from
+phase1-geometry), not the curvature κ = |dt̂/ds|, and it is well-defined for straight
+segments where κ = 0 and the Frenet-Serret frame is undefined.
+
+**Implementation summary.** The function `evaluate_exact_kernel` (design.md Section 6.4)
+receives t̂ as an input. It computes {n̂_r, n̂_φ} via the three-step construction above,
+then evaluates the azimuthal quadrature. No segment-type branching is required inside
+`evaluate_exact_kernel`; the curve-type specificity lives entirely in how t̂ is computed
+by the caller.
 
 ---
 
