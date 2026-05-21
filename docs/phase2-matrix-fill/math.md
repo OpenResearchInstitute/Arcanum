@@ -191,7 +191,7 @@ For the self-impedance element Z[m,m], the source and observation points are on 
 
 With the exact kernel, R_surf ≥ a > 0 — the singularity does not occur. However, when a is small, R_surf is small for s ≈ s' and the integrand is sharply peaked. Standard fixed-order Gauss-Legendre quadrature undersamples the peak and produces inaccurate results. This is the near-singular case.
 
-### 5.2 Treatment — Singularity Extraction
+### 5.2 Treatment — Near-Singular Quadrature (Exact Kernel)
 
 The standard approach is singularity extraction. Split the self-impedance integral into a singular (or near-singular) part with a known analytic form, and a smooth remainder that is well-suited to Gauss-Legendre:
 
@@ -203,7 +203,97 @@ K_exact(s, s') = [K_exact(s, s') - K_singular(s, s')] + K_singular(s, s')
 
 The analytic part K_singular is chosen to match the singular behavior of K_exact as s → s'. The smooth remainder is then integrated with standard Gauss-Legendre at modest quadrature order. The analytic part is integrated exactly.
 
-The specific form of K_singular and its analytic integral are derived in terms of the segment geometry and wire radius. See the Fikioris references for the exact kernel self-impedance extraction.
+**Conceptual clarification from Fikioris & Wu (2001).** That paper demonstrates that the
+*approximate* (thin-wire) kernel K_ap diverges logarithmically at z = 0 — which is why the
+approximate integral equation has no solution. The *exact* kernel K_ex is bounded everywhere.
+For Arcanum's exact kernel, Z[m,m] has **no true singularity**. The challenge is
+**near-singularity**: for thin wires (a << Δ), the integrand is sharply peaked near s = s'
+because R_surf achieves its minimum value of a there. Standard fixed-order Gauss-Legendre
+undersamples the peak. The correct treatment is smooth near-singular subtraction, not
+classical singularity extraction.
+
+**Straight-segment simplification.** For a straight segment, the observation point is on the
+axis and the source surface point is at radius a. The distance R_surf is φ-independent:
+
+```
+R_surf = √(a² + (s-s')²)            [φ drops out for straight wire]
+
+K_exact(s, s') = e^{-jk√(a²+(s-s')²)} / √(a²+(s-s')²)
+```
+
+At s = s' this equals e^{-jka}/a — large for thin wires, but finite.
+
+**Near-singular subtraction.** Define the near-singular part:
+
+```
+K_near(s, s') = 1 / √(a² + (s-s')²)
+```
+
+This matches the dominant behavior of K_exact near s = s'. The smooth remainder:
+
+```
+K_smooth(s, s') = K_exact(s, s') - K_near(s, s')
+               = [e^{-jk√(a²+(s-s')²)} - 1] / √(a²+(s-s')²)
+```
+
+As s → s': K_smooth → (e^{-jka} - 1)/a → -jk. Bounded and smooth everywhere.
+Standard Gauss-Legendre integrates K_smooth accurately at order 8–16.
+
+**Analytic double integral of K_near — T1 self-element.** Setting u = s - s_n, v = s' - s_n,
+both in [0, Δ]:
+
+```
+I_near = ∫_0^Δ ∫_0^Δ 1/√(a²+(u-v)²) dv du
+```
+
+Inner integral: `∫_0^Δ 1/√(a²+(u-v)²) dv = sinh⁻¹((Δ-u)/a) + sinh⁻¹(u/a)`
+
+Outer integral by symmetry (substituting u → Δ-u in the first term):
+
+```
+I_near = 2 ∫_0^Δ sinh⁻¹(u/a) du
+       = 2 [u sinh⁻¹(u/a) - √(a²+u²)]_0^Δ
+       = 2 [Δ sinh⁻¹(Δ/a) - √(a²+Δ²) + a]
+```
+
+This is the closed-form contribution from K_near to T1[m,m].
+
+**Analytic single integral of K_near — T2 self-element.** The T2 term evaluates K_exact at
+segment endpoints. For the self-element the observation point s sweeps the segment while the
+source point is fixed at an endpoint s_end:
+
+```
+∫_{Δm} K_near(s, s_end) ds = sinh⁻¹((s_{m+1} - s_end)/a) - sinh⁻¹((s_m - s_end)/a)
+```
+
+T2[m,m] is bounded everywhere (R_surf ≥ a at any endpoint) and does not require the
+near-singular subtraction. Standard Gauss-Legendre applies.
+
+**Complete self-element evaluation:**
+
+```
+Z[m,m] = jωμ₀/(4π) × { I_near  +  ∫∫ K_smooth ds ds' }
+        - 1/(jωε₀4π) × ∫ [K_exact(s, r_m(s_{m+1})) - K_exact(s, r_m(s_m))] ds
+```
+
+where I_near is the closed form above and ∫∫ K_smooth is evaluated with adaptive
+Gauss-Legendre.
+
+**Thin-wire limit consistency check.** As a → 0, using sinh⁻¹(Δ/a) → ln(2Δ/a):
+
+```
+I_near → 2Δ [ln(2Δ/a) - 1] + O(a)
+```
+
+Multiplying by jωμ₀/(4π): `jωμ₀Δ/(2π) × [ln(2Δ/a) - 1]` — which is exactly the
+thin-wire self-impedance formula in Section 5.3. ✓
+
+**Curved-wire generalization.** For arc and helix segments, R_surf depends on φ because the
+wire curves away from the observation point. The near-singular subtraction still applies in
+the local tangent frame: near s ≈ s' the curved wire is locally straight, so K_near has the
+same form with the same analytic integral. The curvature correction appears only in K_smooth,
+which is smooth and integrable with standard methods. The precise K_exact for curved segments
+requires the perpendicular frame (n̂_r, n̂_φ); see OPEN ITEM 7.4-A in Section 7.4.
 
 ### 5.3 Thin-Wire Limit of Self-Impedance
 
@@ -225,7 +315,77 @@ The logarithmic dependence on a/Δ confirms that the imaginary part of self-impe
 
 For adjacent segments m and m+1 (sharing one endpoint), the minimum axis-to-axis distance R_axis can become very small as the integration variables s and s' approach the shared endpoint. With the exact kernel, R_surf ≥ a, so there is no true singularity — but for small a, the integrand is again sharply peaked near the shared endpoint.
 
-The same singularity extraction approach applies. Identify the near-singular behavior analytically, subtract it, integrate the remainder with standard quadrature, add the analytic contribution.
+The near-singular subtraction of Section 5.2 applies here too. The difference is geometry:
+the near-singular region is concentrated near the **shared endpoint** P = r_m(s_{m+1}),
+not spread over the full segments.
+
+**Local coordinates near the shared endpoint.** Define:
+
+```
+ε  = s_{m+1} - s     [distance from P within segment m,  ε ∈ [0, Δm]]
+ε' = s' - s_{m+1}    [distance from P within segment m+1, ε' ∈ [0, Δ_{m+1}]]
+```
+
+For straight segments meeting at angle θ_bend, near the shared endpoint:
+
+```
+R_surf ≈ √(a² + ε² + ε'² + 2εε' cos θ_bend)
+```
+
+For collinear segments (θ_bend = 0): R_surf ≈ √(a² + (ε + ε')²) — same form as
+the self-element with the combined arc length (ε + ε').
+
+**Near-singular subtraction for T1[m, m+1].** Define:
+
+```
+K_near(ε, ε') = (t̂_m · t̂_{m+1}) / √(a² + ε² + ε'² + 2εε' cos θ_bend)
+```
+
+where t̂_m · t̂_{m+1} = cos θ_bend. The smooth remainder is bounded for all ε, ε'.
+
+**Analytic double integral of K_near.** For collinear segments (θ_bend = 0, cos θ_bend = 1),
+the near-singular integral over the one-sided domain evaluates to:
+
+```
+∫_0^{Δm} ∫_0^{Δ_{m+1}} 1/√(a²+(ε+ε')²) dε' dε
+
+  = Δm sinh⁻¹(Δ_{m+1}/a) + Δ_{m+1} sinh⁻¹(Δm/a)
+    - √(a²+(Δm+Δ_{m+1})²) + √(a²+Δm²) + √(a²+Δ_{m+1}²) - a
+```
+
+Derivation: inner integral gives sinh⁻¹((Δ_{m+1}+ε)/a) - sinh⁻¹(ε/a); outer integral
+applies the same antiderivative formula used in Section 5.2.
+
+For a bent junction (θ_bend ≠ 0), the analytic integral acquires a correction factor from
+cos θ_bend. For θ_bend small (gentle bends, typical in discretized curved wires), the
+collinear formula is a good approximation. For sharp bends (θ_bend ≥ π/4), the correction
+is non-negligible and the integral should be evaluated adaptively.
+
+**Near-singular contribution to T2[m, m+1].** The T2 term for the near-neighbor element is:
+
+```
+T2[m, m+1] = ∫_{Δm} [K_exact(r_m(s), r_{m+1}(s_{m+2})) - K_exact(r_m(s), r_{m+1}(s_{m+1}))] ds
+```
+
+The second term K_exact(r_m(s), r_{m+1}(s_{m+1})) peaks as s → s_{m+1} (observation
+approaches the shared endpoint P from within segment m, source fixed at P on segment m+1's
+surface). Near-singular subtraction:
+
+```
+K_near_T2(s) = 1 / √(a² + (s_{m+1}-s)²)
+
+Analytic integral: ∫ K_near_T2 ds = sinh⁻¹((s_{m+1}-s)/a) + C
+```
+
+The first term K_exact(r_m(s), r_{m+1}(s_{m+2})) is bounded away from any singularity and
+requires no special treatment.
+
+**`near_singular_distance_ratio` interpretation.** The design doc `MatrixFillConfig` field
+`near_singular_distance_ratio` (default 3.0) defines how far from the shared endpoint the
+near-singular treatment is applied, measured in multiples of the wire radius a. Concretely:
+the near-singular subtraction is applied for ε < 3a and ε' < 3a. Beyond this distance the
+integrand is smooth and standard Gauss-Legendre at order 8 is accurate. A value of 3.0 is
+conservative; for most wire geometries 2.0 suffices.
 
 ### 6.2 Extent of Near-Neighbor Treatment
 
@@ -258,6 +418,27 @@ The default convergence threshold is ε_quad = 1×10⁻¹⁰ (10 significant fig
 ### 7.3 Azimuthal Integration for Exact Kernel
 
 The azimuthal integral in K_exact is evaluated with a fixed-order Gauss-Legendre rule on [0, 2π]. For most wire radii (a ≤ Δ/2), order 16 (16 azimuthal points) achieves 8 significant figures in K_exact. For a/Δ > 0.5 (very thick wires), higher azimuthal order may be required.
+
+### 7.4 Perpendicular Frame Computation for Exact Kernel
+
+> **OPEN ITEM 7.4-A — Perpendicular frame (n̂_r, n̂_φ) for each curve type (BLOCKER)**
+>
+> The exact kernel evaluation (design.md Section 6.4) requires two unit vectors perpendicular
+> to the wire tangent t̂ at each source point s'. These must be specified for each segment type
+> before `evaluate_exact_kernel()` can be implemented. Required content:
+>
+> 1. **Straight segment:** t̂ is constant. Any consistent perpendicular frame works; specify
+>    the canonical choice (e.g., Gram-Schmidt against ẑ, with fallback when t̂ ∥ ẑ).
+> 2. **Arc segment:** t̂ varies. The principal normal n̂ = (dt̂/ds)/|dt̂/ds| is well-defined
+>    everywhere on an arc (non-zero curvature). Specify whether the Frenet-Serret frame is
+>    used and what n̂_r and n̂_φ map to in that frame.
+> 3. **Helix segment:** Same as arc — Frenet-Serret frame is the natural choice. Specify the
+>    principal normal and binormal expressions in terms of the helix parameters (pitch, radius).
+> 4. **Frame continuity at segment boundaries:** The azimuthal angle φ in the exact kernel
+>    integral is a dummy variable, so inter-segment frame continuity is not required for
+>    correctness. Confirm this explicitly.
+>
+> Tracking: resolve before opening a Phase 2 implementation PR.
 
 ---
 
@@ -345,8 +526,10 @@ For self and near-neighbor elements (|m-n| ≤ 1), singularity extraction is app
 ## 13. References
 
 - Harrington, R.F. — *Field Computation by Moment Methods* (1968) — MoM formulation; Sections 3-4 directly relevant, cannot be overstated
-- Fikioris, G. & Wu, T.T. — "On the Application of Numerical Methods to Hallén's Equation" — exact kernel self-impedance extraction essentially lifted
-- Vande Ginste, D. et al. — conformal MoM basis function formulations for curved wires essentially lifted
+- Fikioris, G. & Wu, T.T. — "On the Application of Numerical Methods to Hallén's Equation," IEEE TAP, 2001 — exact vs. approximate kernel behavior; confirms exact kernel is bounded (no true singularity); Toeplitz matrix element structure for straight wire
+- Mystilidis, C., Papakanellos, P.J., Fikioris, G. & Mavrogordatos, T.K. — "On the Application of Numerical Methods to Hallén's Equation: The Case of a Lossy Medium," IEEE AWPL, 2020 — extends Fikioris & Wu to complex wavenumber (lossy surrounding medium); foundation for deferred Sommerfeld integral work (see Open Question 2)
+- Champagne, N.J., Williams, J.T. & Wilton, D.R. — "The Use of Curved Segments for Numerically Modeling Thin Wire Antennas and Scatterers," IEEE TAP, 1992 — foundational CMoM curved-wire formulation
+- Rogers, S.D. & Butler, C.M. — "An Efficient Curved-Wire Integral Equation Solution Technique," IEEE TAP, 2001 — exact kernel treatment for curved wires
 - Burke & Poggio — *NEC-2 Method of Moments Code* (1981) — thin-wire kernel formulation (the baseline we improve upon!)
 - `docs/phase1-geometry/math.md` — parametric forms r(τ), r'(τ), |r'(τ)| used in arc length elements
 - `docs/phase2-matrix-fill/validation.md` — validation cases whose expected values are derived from this document
