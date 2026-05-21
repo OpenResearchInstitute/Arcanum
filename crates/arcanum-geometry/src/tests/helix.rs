@@ -258,22 +258,20 @@ fn v_hel_001_parse_card_string() {
 GH 1 8 0.0628 0.0628 0.05 0.05 0.001
 GE 0
 ";
-    let (sim, _warnings) =
-        arcanum_nec_import::parse(deck).expect("parse failed");
+    let (sim, _warnings) = arcanum_nec_import::parse(deck).expect("parse failed");
     let (mesh, _geo_warnings) =
-        crate::build_mesh(sim.mesh_input, sim.ground_electrical)
-            .expect("build_mesh failed");
+        crate::build_mesh(sim.mesh_input, sim.ground_electrical).expect("build_mesh failed");
 
     assert_eq!(mesh.segments.len(), 8);
 
     let tol = 1e-4;
     approx_eq!(mesh.segments[0].start().x, 0.05, tol);
-    approx_eq!(mesh.segments[0].start().y, 0.0,  tol);
-    approx_eq!(mesh.segments[0].start().z, 0.0,  tol);
+    approx_eq!(mesh.segments[0].start().y, 0.0, tol);
+    approx_eq!(mesh.segments[0].start().z, 0.0, tol);
 
     let pitch = 0.0628_f64;
-    approx_eq!(mesh.segments[7].end().x, 0.05,  tol);
-    approx_eq!(mesh.segments[7].end().y, 0.0,   tol);
+    approx_eq!(mesh.segments[7].end().x, 0.05, tol);
+    approx_eq!(mesh.segments[7].end().y, 0.0, tol);
     approx_eq!(mesh.segments[7].end().z, pitch, tol);
 
     // Geometric continuity.
@@ -294,11 +292,9 @@ fn v_hel_002_parse_card_string() {
 GH 1 40 0.0628 0.314 0.05 0.05 0.001
 GE 0
 ";
-    let (sim, _warnings) =
-        arcanum_nec_import::parse(deck).expect("parse failed");
+    let (sim, _warnings) = arcanum_nec_import::parse(deck).expect("parse failed");
     let (mesh, _geo_warnings) =
-        crate::build_mesh(sim.mesh_input, sim.ground_electrical)
-            .expect("build_mesh failed");
+        crate::build_mesh(sim.mesh_input, sim.ground_electrical).expect("build_mesh failed");
 
     assert_eq!(mesh.segments.len(), 40);
 
@@ -312,6 +308,6 @@ GE 0
     let total_length = 0.314_f64;
     approx_eq!(mesh.segments[39].end().z, total_length, tol);
     approx_eq!(mesh.segments[0].start().x, 0.05, tol);
-    approx_eq!(mesh.segments[0].start().y, 0.0,  tol);
-    approx_eq!(mesh.segments[0].start().z, 0.0,  tol);
+    approx_eq!(mesh.segments[0].start().y, 0.0, tol);
+    approx_eq!(mesh.segments[0].start().z, 0.0, tol);
 }
