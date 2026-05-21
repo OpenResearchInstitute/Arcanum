@@ -1,12 +1,10 @@
 // helix.rs — V-HEL validation cases (Steps 4 and 7)
 //
 // V-HEL-001 and V-HEL-002 test helix discretization (Step 4).
+// v_hel_001_parse and v_hel_002_parse drive the same cases through the
+// NEC card string from validation.md to verify the parser and geometry
+// pipeline agree end-to-end.
 // V-HEL-003 PEC image assertions are TODO (Step 7).
-//
-// NOTE: The GH card strings in validation.md V-HEL-001/002 have an extra
-// field and an inconsistent total_length value. Tests here construct
-// HelixWire structs directly with the physically correct values that match
-// the stated expected outputs (one and five turns respectively).
 
 use arcanum_nec_import::{
     GeometricGround, GeometricGround as NecGeometricGround, GeometryTransforms,
@@ -246,4 +244,70 @@ fn v_hel_003_helix_over_pec_ground() {
     // the helix feed point at the ground plane.
     assert_eq!(mesh.junctions.len(), 1);
     assert!(!mesh.junctions[0].is_self_loop);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V-HEL-001 (parse) — Card string from validation.md drives the same case
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn v_hel_001_parse_card_string() {
+    // Literal card string from validation.md V-HEL-001.
+    // Exercises the full pipeline: nec-import lexer → router → build_mesh.
+    let deck = "\
+GH 1 8 0.0628 0.0628 0.05 0.05 0.001
+GE 0
+";
+    let (sim, _warnings) = arcanum_nec_import::parse(deck).expect("parse failed");
+    let (mesh, _geo_warnings) =
+        crate::build_mesh(sim.mesh_input, sim.ground_electrical).expect("build_mesh failed");
+
+    assert_eq!(mesh.segments.len(), 8);
+
+    let tol = 1e-4;
+    approx_eq!(mesh.segments[0].start().x, 0.05, tol);
+    approx_eq!(mesh.segments[0].start().y, 0.0, tol);
+    approx_eq!(mesh.segments[0].start().z, 0.0, tol);
+
+    let pitch = 0.0628_f64;
+    approx_eq!(mesh.segments[7].end().x, 0.05, tol);
+    approx_eq!(mesh.segments[7].end().y, 0.0, tol);
+    approx_eq!(mesh.segments[7].end().z, pitch, tol);
+
+    // Geometric continuity.
+    for k in 0..7usize {
+        let gap = (mesh.segments[k].end() - mesh.segments[k + 1].start()).norm();
+        assert!(gap < 1e-12, "continuity gap at seg {}: {} m", k, gap);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V-HEL-002 (parse) — Card string from validation.md drives the same case
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn v_hel_002_parse_card_string() {
+    // Literal card string from validation.md V-HEL-002.
+    let deck = "\
+GH 1 40 0.0628 0.314 0.05 0.05 0.001
+GE 0
+";
+    let (sim, _warnings) = arcanum_nec_import::parse(deck).expect("parse failed");
+    let (mesh, _geo_warnings) =
+        crate::build_mesh(sim.mesh_input, sim.ground_electrical).expect("build_mesh failed");
+
+    assert_eq!(mesh.segments.len(), 40);
+
+    // Geometric continuity — primary validation target.
+    for k in 0..39usize {
+        let gap = (mesh.segments[k].end() - mesh.segments[k + 1].start()).norm();
+        assert!(gap < 1e-12, "continuity gap at seg {}: {} m", k, gap);
+    }
+
+    let tol = 1e-9;
+    let total_length = 0.314_f64;
+    approx_eq!(mesh.segments[39].end().z, total_length, tol);
+    approx_eq!(mesh.segments[0].start().x, 0.05, tol);
+    approx_eq!(mesh.segments[0].start().y, 0.0, tol);
+    approx_eq!(mesh.segments[0].start().z, 0.0, tol);
 }
