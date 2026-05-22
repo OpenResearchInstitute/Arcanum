@@ -114,6 +114,23 @@ Requires near-singular quadrature. Two elements per segment (except at wire ends
 
 Note: "Adjacent in the mesh" means adjacent in the global segment index, which corresponds to adjacent along the same wire. Segments from different wires that happen to be geometrically close but are not sequentially adjacent in the mesh are treated as regular elements. This is a simplification. Future work may extend near-singular treatment to geometrically proximate non-sequential segments, if there's an advantage.
 
+**Decision (resolved):** Apply Option A for initial implementation — use the intra-wire
+near-singular extraction formula for cross-wire adjacent pairs and document it as an
+approximation. The `|m-n| = 1` classification already correctly identifies these pairs;
+no additional detection logic is needed.
+
+The approximation error grows with bend angle at the junction and with the number of
+junctions. For simple geometries (dipoles, Yagis) the error is negligible. For geometries
+with many sharp junctions — fractal antennas, heavily meander-loaded wires like the
+Dumbbell — the accumulated error may become measurable.
+
+**Future work (Option B):** When sharp-junction accuracy is needed, detect cross-wire
+adjacent pairs via the Phase 1 junction map and apply a bend-angle-corrected extraction
+formula. The infrastructure for this is already in place: the junction map identifies
+exactly which `|m-n| = 1` pairs are cross-wire, so upgrading is a formula substitution
+rather than a structural change. Track as a follow-on issue before tackling fractal or
+heavily-loaded geometries.
+
 ### 4.3 Regular Elements
 
 ```
@@ -304,39 +321,49 @@ Phase 2 does not:
 
 ## 10. Open Items
 
-The following must be resolved before Phase 2 implementation begins:
+All items resolved. Phase 2 implementation may proceed.
 
-1. **Self-impedance singularity extraction formula.** The specific analytic form of K_singular for the self-element case must be derived and written into `math.md` Section 5.2. This is the highest-risk item because an incorrect extraction formula produces systematically wrong diagonal elements that corrupt the entire solution.
+1. **Self-impedance near-singular quadrature** — resolved. K_near subtraction and
+   closed-form analytic integral derived in `math.md` Section 5.2.
 
-2. **Near-neighbor extraction formula.** Same requirement for |m-n| = 1 elements. See `math.md` Section 6.
+2. **Near-neighbor quadrature** — resolved. Near-singular treatment in local (ε, ε')
+   coordinates derived in `math.md` Section 6.1.
 
-3. **Normal vector computation for exact kernel.** The vectors n̂_r and n̂_φ (perpendicular to the wire axis at each point) must be computed from the segment's tangent vector. For a helix segment, the Frenet-Serret frame is the natural choice. The computation of the principal normal and binormal from t̂ must be specified for each curve type. This is a `math.md` item.
+3. **Perpendicular frame for exact kernel** — resolved. Minimum-component Gram-Schmidt
+   construction proved correct for all curve types in `math.md` Section 7.4.
 
-4. **Unsafe write pattern review.** The parallel write pattern in Step 3 of Section 5 uses potentially unsafe raw pointer access to write to non-overlapping matrix locations. This must be reviewed by an experienced Rust contributor before implementation to confirm the "unsafety contract" is correctly stated and upheld. Risky part of the business. 
+4. **Cross-wire junction near-neighbor treatment** — resolved. Option A adopted for
+   initial implementation; Option B tracked as future work. See Section 4.2.
 
+5. **Unsafe write pattern review.** The parallel write pattern in Step 3 of Section 5
+   uses raw pointer access to write to non-overlapping matrix locations. Non-overlap is
+   guaranteed by the upper-triangle element classification. Flag for Rust safety review
+   on the Phase 2 implementation PR.
 ---
 
 ## 11. Repository Layout
 
+The crate is `crates/arcanum-matrix-fill/`. Source files are flat under `src/`, consistent with the Phase 1 crate (`crates/arcanum-geometry/src/`).
+
 ```
-src/
-├── matrix_fill/
-│   ├── mod.rs                ← pub fn fill_impedance_matrix()
-│   ├── classify.rs           ← element classification
-│   ├── quadrature.rs         ← QuadratureTables, GL node/weight precomputation
-│   ├── exact_kernel.rs       ← evaluate_exact_kernel()
-│   ├── regular.rs            ← compute_regular()
-│   ├── near_neighbor.rs      ← compute_near_neighbor()
-│   ├── self_element.rs       ← compute_self()
-│   ├── config.rs             ← MatrixFillConfig
-│   ├── zmatrix.rs            ← ZMatrix struct
-│   └── tests/
-│       ├── symmetry_tests.rs  ← V-SYM cases
-│       ├── diag_tests.rs      ← V-DIAG cases
-│       ├── thin_wire_tests.rs ← V-THIN cases
-│       ├── quad_tests.rs      ← V-QUAD cases
-│       ├── near_tests.rs      ← V-NEAR cases
-│       └── perf_tests.rs      ← V-PERF cases
+crates/arcanum-matrix-fill/src/
+├── lib.rs               ← pub fn fill_impedance_matrix(); crate entry point
+├── classify.rs          ← element classification (self / near-neighbor / regular)
+├── quadrature.rs        ← QuadratureTables, GL node/weight precomputation
+├── exact_kernel.rs      ← evaluate_exact_kernel()
+├── regular.rs           ← compute_regular()
+├── near_neighbor.rs     ← compute_near_neighbor()
+├── self_element.rs      ← compute_self()
+├── config.rs            ← MatrixFillConfig
+├── zmatrix.rs           ← ZMatrix struct
+└── tests/
+    ├── mod.rs
+    ├── symmetry.rs      ← V-SYM cases
+    ├── diag.rs          ← V-DIAG cases
+    ├── thin_wire.rs     ← V-THIN cases
+    ├── quad.rs          ← V-QUAD cases
+    ├── near.rs          ← V-NEAR cases
+    └── perf.rs          ← V-PERF cases
 ```
 
 ---
