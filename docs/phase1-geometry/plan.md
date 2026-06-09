@@ -162,6 +162,7 @@ One test file per validation category:
 | `tests/ground.rs` | V-GND-001 through V-GND-004 |
 | `tests/tagmap.rs` | V-TAG-001 |
 | `tests/warnings.rs` | V-WARN-001 through V-WARN-002 |
+| `tests/curve_eval.rs` | Curve evaluation: endpoint identity, midpoints, speed, arc length, tangent, GM transforms, continuity (19 tests, added for Phase 2 prerequisite) |
 
 ---
 

@@ -6,44 +6,19 @@ Phase 1 (Geometry) is complete and all Phase 2 design blockers are resolved. Pha
 
 ---
 
-## Prerequisite: Add Curve Evaluation to Phase 1
+## Prerequisite: Add Curve Evaluation to Phase 1 — DONE (2026-06-08)
 
-**Problem:** `CurveParams` has no `evaluate(σ)`, `tangent(σ)`, or `speed(σ)` methods. Phase 2 needs `r(σ)`, `r'(σ)`, `|r'(σ)|` at every quadrature point. Furthermore, after GM transforms, `ArcParams` and `HelixParams` only have Cartesian endpoints updated — the rotation matrix is discarded, making arbitrary-σ evaluation impossible for transformed arcs/helices.
+Added `rotation: Matrix3<f64>` and `center: Vector3<f64>` fields to `ArcParams` and `HelixParams`. Implemented `evaluate()`, `tangent()`, `speed()`, `arc_length()` on `CurveParams`. All construction sites, transforms, scale, and image reflection updated. 19 new tests in `tests/curve_eval.rs`. All 43 geometry tests + 35 nec-import tests pass. Clippy clean. Python integration tests (33) pass.
 
-**Solution:** Add `rotation: Matrix3<f64>` and `center: Vector3<f64>` fields to `ArcParams` and `HelixParams`. Implement `evaluate()`, `tangent()`, `speed()`, `arc_length()` on `CurveParams`.
+See `docs/phase1-geometry/phase1-changes.md` item 5 for details.
 
-### Files to modify
+### Files modified
 
-**`crates/arcanum-geometry/src/mesh.rs`**
-- Add `rotation: Matrix3<f64>`, `center: Vector3<f64>` to `ArcParams` and `HelixParams`
-- Add `impl CurveParams` with:
-  - `evaluate(σ) → Vector3<f64>` — position r(σ) for σ ∈ [0,1]
-  - `tangent(σ) → Vector3<f64>` — dr/dσ (unnormalized)
-  - `speed(σ) → f64` — |dr/dσ|
-  - `arc_length() → f64` — total segment arc length
-- Linear: `r(σ) = start + σ*(end - start)`, tangent = `end - start` (constant)
-- Arc: `r(σ) = rotation * (R cos θ(σ), 0, R sin θ(σ))ᵀ + center` where `θ(σ) = θ1 + σ(θ2 - θ1)`
-- Helix: `r(σ) = rotation * (A(τ) cos(2πNτ), A(τ) sin(2πNτ), HL·τ)ᵀ + center` where `τ = (seg_idx + σ)/n_segs`
-
-**`crates/arcanum-geometry/src/discretize.rs`**
-- Set `rotation: Matrix3::identity()`, `center: Vector3::zeros()` in `discretize_arc()` and `discretize_helix()`
-
-**`crates/arcanum-geometry/src/transforms.rs`**
-- `transform_segment()` Arc/Helix: compose `p.rotation = rot * p.rotation`, `p.center = rot * p.center + trans`
-- `scale_segment()` Arc/Helix: scale `p.center *= s`
-
-**`crates/arcanum-geometry/src/images.rs`**
-- `reflect_z()` Arc/Helix: compose z-reflection `diag(1,1,-1)` with rotation, negate `center.z`
-
-**`crates/arcanum-geometry/src/tests/` — new `curve_eval.rs`**
-- `evaluate(0.0)` == `start()`, `evaluate(1.0)` == `end()` for all curve types
-- Arc midpoint at σ=0.5 matches known value
-- Helix midpoint at σ=0.5 matches known value
-- Evaluation correct after GM rotation+translation
-- `speed()` for linear = segment length
-- `arc_length()` for arc = R × |θ2 - θ1|
-
-**Verify:** `cargo test -p arcanum-geometry` — all existing + new tests pass
+- **`mesh.rs`** — Added `rotation`/`center` to `ArcParams` and `HelixParams`; added `impl CurveParams` with `evaluate(σ)`, `tangent(σ)`, `speed(σ)`, `arc_length()`
+- **`discretize.rs`** — Set `rotation: Matrix3::identity()`, `center: Vector3::zeros()` in arc and helix construction
+- **`transforms.rs`** — `transform_segment()`: compose `rotation = rot * rotation`, `center = rot * center + trans`; `scale_segment()`: scale `center *= s`
+- **`images.rs`** — `reflect_z()`: compose `diag(1,1,-1)` with rotation, negate `center.z`
+- **`tests/curve_eval.rs`** — 19 tests: endpoint identity, midpoints, speed, arc length, tangent, GM transforms, continuity
 
 ---
 

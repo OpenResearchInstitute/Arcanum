@@ -2,8 +2,8 @@
 
 **Project:** Arcanum  
 **Document:** `docs/phase1-geometry/math.md`  
-**Status:** DRAFT  
-**Revision:** 0.1
+**Status:** DRAFT
+**Revision:** 0.2
 
 ---
 
@@ -165,7 +165,11 @@ Any implementation that accumulates angle incrementally (adding Δθ per segment
 
 ### 4.5 Rotation to Arbitrary Plane
 
-The NEC GA card places arcs in the XZ plane. To obtain an arc in an arbitrary plane, the NEC GM card applies a rotation after GA. Phase 1 applies GM transformations to the final Cartesian coordinates of each segment endpoint — the parametric form above is evaluated first, then the rotation is applied as a standard 3D rotation matrix. The parametric form itself does not need to represent arbitrary orientations.
+The NEC GA card places arcs in the XZ plane. To obtain an arc in an arbitrary plane, the NEC GM card applies a rotation after GA.
+
+`ArcParams` (and `HelixParams`) store `rotation: Matrix3<f64>` and `center: Vector3<f64>` fields that compose the local-frame parametric form with the world-space transformation. Initially `rotation = I` and `center = 0`. When a GM transform is applied, the rotation and center are composed: `rotation ← rot * rotation`, `center ← rot * center + trans`. This allows Phase 2 to evaluate `r(σ) = rotation * r_local(σ) + center` at arbitrary quadrature points, not just at precomputed endpoints.
+
+For GS scaling, `center` is scaled; `rotation` is unchanged (scaling is uniform). For PEC ground reflection, `rotation ← diag(1,1,-1) * rotation` and `center.z` is negated.
 
 ---
 

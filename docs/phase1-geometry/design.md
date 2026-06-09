@@ -2,8 +2,8 @@
 
 **Project:** Arcanum  
 **Document:** `docs/phase1-geometry/design.md`  
-**Status:** DRAFT  
-**Revision:** 0.2
+**Status:** DRAFT
+**Revision:** 0.3
 
 ---
 
@@ -69,7 +69,18 @@ Segment {
 }
 ```
 
-### 4.2 Curve Types
+### 4.2 Curve Evaluation API
+
+`CurveParams` provides four evaluation methods used by Phase 2 for quadrature integration:
+
+- `evaluate(σ) → Vector3<f64>` — position r(σ) for σ ∈ [0,1]
+- `tangent(σ) → Vector3<f64>` — dr/dσ (unnormalized)
+- `speed(σ) → f64` — |dr/dσ|
+- `arc_length() → f64` — total segment arc length
+
+For arc and helix types, evaluation uses stored `rotation` and `center` fields to transform from the local parametric frame to world coordinates: `r(σ) = rotation * r_local(σ) + center`. These fields are composed through GM transforms and GS scaling so that evaluation is correct at arbitrary σ, not just at precomputed endpoints. See `math.md` Section 4.5 for the mathematical formulation.
+
+### 4.3 Curve Types
 
 Three curve types are supported in this phase, corresponding to the three geometry cards that describe curved or straight wire. They are:
 
@@ -79,7 +90,7 @@ Three curve types are supported in this phase, corresponding to the three geomet
 
 **Helix** — helical segment, from `GH`. Defined by pitch, radius, and number of turns. Discretized into N segments, each a short helical arc. This is the curve type where CMoM most visibly outperforms NEC-2 and is high priority for ORI use cases. See `math.md`.
 
-### 4.3 Discretization
+### 4.4 Discretization
 
 Each wire card specifies the number of segments N explicitly. Phase 1 does not choose N. It respects what the `.nec` file specifies. Guidelines on choosing N relative to wavelength are a "you problem". Phase 1 only enforces that N ≥ 1.
 

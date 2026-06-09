@@ -2,8 +2,8 @@
 
 **Project:** Arcanum  
 **Document:** `docs/phase1-geometry/phase1-changes.md`  
-**Status:** CLOSED — 2026-04-17  
-**Revision:** 0.2
+**Status:** CLOSED — 2026-06-08
+**Revision:** 0.3
 
 ---
 
@@ -174,7 +174,62 @@ Junction count assertions added to three tests (`validation.md` → Revision 0.4
 
 ---
 
-## 5. Summary Table
+## 5. Curve Evaluation Methods — Phase 2 Prerequisite
+
+**Added:** 2026-06-08, as a prerequisite for Phase 2 matrix fill implementation.
+
+### What was added
+
+Phase 2 needs to evaluate `r(σ)`, `r'(σ)`, and `|r'(σ)|` at arbitrary Gauss-Legendre quadrature points on every segment. The original Phase 1 implementation only stored precomputed Cartesian endpoints — there was no way to evaluate the parametric curve at arbitrary σ. Furthermore, after GM transforms, `ArcParams` and `HelixParams` had their Cartesian endpoints updated but the rotation matrix was discarded, making arbitrary-σ evaluation impossible for transformed arcs/helices.
+
+### Changes
+
+**`mesh.rs`:**
+- Added `rotation: Matrix3<f64>` and `center: Vector3<f64>` fields to `ArcParams` and `HelixParams`. Before any transform, `rotation = I` and `center = 0`.
+- Added `impl CurveParams` with four methods:
+  - `evaluate(σ) → Vector3<f64>` — position r(σ) for σ ∈ [0,1]
+  - `tangent(σ) → Vector3<f64>` — dr/dσ (unnormalized)
+  - `speed(σ) → f64` — |dr/dσ|
+  - `arc_length() → f64` — closed-form for linear and arc; 16-point numerical for helix
+
+**`discretize.rs`:**
+- Arc and helix construction sets `rotation: Matrix3::identity()`, `center: Vector3::zeros()`.
+
+**`transforms.rs`:**
+- `transform_segment()` for Arc/Helix: composes `rotation = rot * rotation`, `center = rot * center + trans`.
+- `scale_segment()` for Arc/Helix: scales `center *= s`.
+
+**`images.rs`:**
+- `reflect_z()` for Arc/Helix: composes `diag(1,1,-1)` with rotation, negates `center.z`.
+
+**`tests/curve_eval.rs`** — 19 new tests:
+- `evaluate(0)` == `start()`, `evaluate(1)` == `end()` for linear, arc, helix
+- Midpoint evaluation for all three curve types
+- Linear: speed = segment length (constant), tangent is constant
+- Arc: arc_length = R × |Δθ|, speed is constant, tangent perpendicular to radius
+- Helix: arc_length matches closed-form for uniform case
+- Arc/helix evaluation correct after GM rotation, GM translation
+- Inter-segment continuity (evaluate(1) of seg k == evaluate(0) of seg k+1)
+
+### Documentation updates
+
+- `math.md` Section 4.5: updated to describe rotation/center composition
+- `design.md` Section 4.2: added Curve Evaluation API section
+- `plan.md` Step 10: added `curve_eval.rs` to test table
+
+### Verification
+
+- All 43 geometry tests pass (24 existing + 19 new)
+- All 35 nec-import tests pass
+- Clippy clean, formatting clean
+- PyO3 bindings compile; all 33 Python integration tests pass
+- Example scripts (mesh_inspect, nec_inspect) run correctly
+
+**Closed** — 2026-06-08.
+
+---
+
+## 6. Summary Table
 
 | # | Item | Status |
 |---|---|---|
@@ -184,6 +239,7 @@ Junction count assertions added to three tests (`validation.md` → Revision 0.4
 | 3.2 | plan.md API signature | **Closed** — corrected 2026-04-17 |
 | 3.3 | Convergence plots requirement | **Closed** — Option 3, removed from validation.md 2026-04-17 |
 | 4 | `images.rs` `wire_index` bug | **Closed** — fixed and tested 2026-04-17 |
+| 5 | Curve evaluation methods (Phase 2 prerequisite) | **Closed** — implemented and tested 2026-06-08 |
 
 ---
 
