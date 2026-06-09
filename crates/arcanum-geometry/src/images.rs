@@ -8,7 +8,14 @@
 // Wires entirely in the z = 0 plane produce no image; a warning is emitted.
 
 use crate::errors::{GeometryWarning, GeometryWarningKind, GeometryWarnings};
+use nalgebra::Matrix3;
+
 use crate::mesh::{ArcParams, CurveParams, HelixParams, LinearParams, Segment};
+
+/// Diagonal matrix that reflects z: diag(1, 1, -1).
+fn z_reflect_matrix() -> Matrix3<f64> {
+    Matrix3::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
+}
 
 pub(crate) fn generate(segments: &mut Vec<Segment>, warnings: &mut GeometryWarnings) {
     let real_count = segments.len();
@@ -63,12 +70,17 @@ fn reflect_z(curve: &CurveParams) -> CurveParams {
             let mut end = p.end;
             start.z = -start.z;
             end.z = -end.z;
-            // theta1/theta2 are now in the negated-z plane (reflected arc).
-            // Phase 2 uses the Cartesian endpoints; angles are approximate.
+            let rz = z_reflect_matrix();
             CurveParams::Arc(ArcParams {
                 radius: p.radius,
                 theta1: -p.theta1,
                 theta2: -p.theta2,
+                rotation: rz * p.rotation,
+                center: {
+                    let mut c = p.center;
+                    c.z = -c.z;
+                    c
+                },
                 start,
                 end,
             })
@@ -78,6 +90,7 @@ fn reflect_z(curve: &CurveParams) -> CurveParams {
             let mut end = p.end;
             start.z = -start.z;
             end.z = -end.z;
+            let rz = z_reflect_matrix();
             CurveParams::Helix(HelixParams {
                 radius_start: p.radius_start,
                 radius_end: p.radius_end,
@@ -85,6 +98,12 @@ fn reflect_z(curve: &CurveParams) -> CurveParams {
                 n_turns: p.n_turns,
                 n_segments: p.n_segments,
                 segment_index: p.segment_index,
+                rotation: rz * p.rotation,
+                center: {
+                    let mut c = p.center;
+                    c.z = -c.z;
+                    c
+                },
                 start,
                 end,
             })

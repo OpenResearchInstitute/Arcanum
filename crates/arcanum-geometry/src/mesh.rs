@@ -3,7 +3,9 @@
 // The Mesh struct is the sole output of Phase 1 and the sole geometric
 // input to all subsequent phases. It is immutable after Phase 1 completes.
 
-use nalgebra::Vector3;
+use std::f64::consts::PI;
+
+use nalgebra::{Matrix3, Vector3};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Curve representation
@@ -48,9 +50,9 @@ impl LinearParams {
 
 /// Parameters for an arc segment.
 ///
-/// r(σ) = (R cos θ(σ), 0, R sin θ(σ)) where θ(σ) = θ1 + σ(θ2 − θ1).
-/// θ1 and θ2 are in radians. After any GM rotation the Cartesian endpoints
-/// are stored directly; Phase 2 uses those.
+/// In the local frame, r(θ) = (R cos θ, 0, R sin θ) where θ ∈ [θ1, θ2].
+/// The world-space position is: rotation * r_local(θ(σ)) + center.
+/// Before any GM transform, rotation = I and center = 0.
 #[derive(Debug, Clone)]
 pub struct ArcParams {
     /// Arc radius (meters).
@@ -59,6 +61,10 @@ pub struct ArcParams {
     pub theta1: f64,
     /// End angle of this segment (radians).
     pub theta2: f64,
+    /// Rotation from local XZ-plane frame to world frame.
+    pub rotation: Matrix3<f64>,
+    /// Translation (world-space origin of the local frame).
+    pub center: Vector3<f64>,
     /// Precomputed start point (for junction detection and image generation).
     pub start: Vector3<f64>,
     /// Precomputed end point.
@@ -67,7 +73,9 @@ pub struct ArcParams {
 
 /// Parameters for a helical segment.
 ///
-/// r(σ) = (A(τ) cos(2π N τ), A(τ) sin(2π N τ), HL τ) where τ = k/N_seg + σ/N_seg.
+/// In the local frame, r(τ) = (A(τ) cos(2πNτ), A(τ) sin(2πNτ), HL·τ)
+/// where τ = (segment_index + σ) / n_segments for σ ∈ [0,1].
+/// The world-space position is: rotation * r_local(τ) + center.
 #[derive(Debug, Clone)]
 pub struct HelixParams {
     /// Radius at the start of the full helix (A₁).
@@ -82,10 +90,90 @@ pub struct HelixParams {
     pub n_segments: u32,
     /// Index of this segment within the full helix (0-based).
     pub segment_index: u32,
+    /// Rotation from local frame to world frame.
+    pub rotation: Matrix3<f64>,
+    /// Translation (world-space origin of the local frame).
+    pub center: Vector3<f64>,
     /// Precomputed start point.
     pub start: Vector3<f64>,
     /// Precomputed end point.
     pub end: Vector3<f64>,
+}
+
+impl CurveParams {
+    /// Position r(σ) for σ ∈ [0, 1].
+    pub fn evaluate(&self, sigma: f64) -> Vector3<f64> {
+        match self {
+            CurveParams::Linear(p) => p.start + sigma * (p.end - p.start),
+            CurveParams::Arc(p) => {
+                let theta = p.theta1 + sigma * (p.theta2 - p.theta1);
+                let local = Vector3::new(p.radius * theta.cos(), 0.0, p.radius * theta.sin());
+                p.rotation * local + p.center
+            }
+            CurveParams::Helix(p) => {
+                let tau = (p.segment_index as f64 + sigma) / p.n_segments as f64;
+                let a = p.radius_start + tau * (p.radius_end - p.radius_start);
+                let angle = 2.0 * PI * p.n_turns * tau;
+                let local = Vector3::new(a * angle.cos(), a * angle.sin(), p.total_length * tau);
+                p.rotation * local + p.center
+            }
+        }
+    }
+
+    /// Tangent dr/dσ (unnormalized) at parameter σ ∈ [0, 1].
+    pub fn tangent(&self, sigma: f64) -> Vector3<f64> {
+        match self {
+            CurveParams::Linear(p) => p.end - p.start,
+            CurveParams::Arc(p) => {
+                let theta = p.theta1 + sigma * (p.theta2 - p.theta1);
+                let dtheta = p.theta2 - p.theta1;
+                let local = Vector3::new(
+                    -p.radius * theta.sin() * dtheta,
+                    0.0,
+                    p.radius * theta.cos() * dtheta,
+                );
+                p.rotation * local
+            }
+            CurveParams::Helix(p) => {
+                let n_seg = p.n_segments as f64;
+                let dtau = 1.0 / n_seg;
+                let tau = (p.segment_index as f64 + sigma) / n_seg;
+                let da = p.radius_end - p.radius_start;
+                let a = p.radius_start + tau * da;
+                let angle = 2.0 * PI * p.n_turns * tau;
+                let dangle = 2.0 * PI * p.n_turns * dtau;
+                let local = Vector3::new(
+                    da * dtau * angle.cos() - a * angle.sin() * dangle,
+                    da * dtau * angle.sin() + a * angle.cos() * dangle,
+                    p.total_length * dtau,
+                );
+                p.rotation * local
+            }
+        }
+    }
+
+    /// Speed |dr/dσ| at parameter σ.
+    pub fn speed(&self, sigma: f64) -> f64 {
+        self.tangent(sigma).norm()
+    }
+
+    /// Total arc length of the segment.
+    pub fn arc_length(&self) -> f64 {
+        match self {
+            CurveParams::Linear(p) => (p.end - p.start).norm(),
+            CurveParams::Arc(p) => p.radius * (p.theta2 - p.theta1).abs(),
+            CurveParams::Helix(_) => {
+                // No closed-form for variable-radius helix; use 16-point GL.
+                let n = 16;
+                let mut sum = 0.0;
+                for i in 0..n {
+                    let sigma = (i as f64 + 0.5) / n as f64;
+                    sum += self.speed(sigma);
+                }
+                sum / n as f64
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

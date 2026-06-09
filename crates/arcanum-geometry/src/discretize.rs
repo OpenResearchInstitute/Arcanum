@@ -3,7 +3,7 @@
 use std::f64::consts::PI;
 
 use arcanum_nec_import::{ArcWire, HelixWire, StraightWire, WireDescription};
-use nalgebra::Vector3;
+use nalgebra::{Matrix3, Vector3};
 
 use crate::errors::{GeometryError, GeometryErrorKind, GeometryWarnings};
 use crate::mesh::{ArcParams, CurveParams, HelixParams, LinearParams, Material, Segment, TagMap};
@@ -117,6 +117,8 @@ fn discretize_arc(
                 radius: r,
                 theta1: th1k,
                 theta2: th2k,
+                rotation: Matrix3::identity(),
+                center: Vector3::zeros(),
                 start,
                 end,
             }),
@@ -173,6 +175,8 @@ fn discretize_helix(
                 n_turns,
                 n_segments: n as u32,
                 segment_index: k as u32,
+                rotation: Matrix3::identity(),
+                center: Vector3::zeros(),
                 start,
                 end,
             }),

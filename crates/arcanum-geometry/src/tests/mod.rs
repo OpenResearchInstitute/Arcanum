@@ -1,6 +1,7 @@
 // Phase 1 test suite — one file per validation category
 
 mod arc;
+mod curve_eval;
 mod ground;
 mod helix;
 mod linear;

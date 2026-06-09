@@ -100,6 +100,7 @@ fn scale_segment(seg: &mut Segment, s: f64) {
             p.start *= s;
             p.end *= s;
             p.radius *= s;
+            p.center *= s;
         }
         CurveParams::Helix(p) => {
             p.start *= s;
@@ -107,6 +108,7 @@ fn scale_segment(seg: &mut Segment, s: f64) {
             p.total_length *= s;
             p.radius_start *= s;
             p.radius_end *= s;
+            p.center *= s;
         }
     }
 }
@@ -122,16 +124,18 @@ fn transform_segment(seg: &mut Segment, rot: &Matrix3<f64>, trans: &Vector3<f64>
             p.end = rot * p.end + trans;
         }
         CurveParams::Arc(p) => {
-            // After GM the arc is in a rotated plane. theta1/theta2 are now
-            // approximate; Phase 2 uses the Cartesian endpoints.
             p.start = rot * p.start + trans;
             p.end = rot * p.end + trans;
+            // Compose the local→world rotation and shift the center.
+            p.rotation = rot * p.rotation;
+            p.center = rot * p.center + trans;
         }
         CurveParams::Helix(p) => {
-            // After GM the helix is in a rotated frame.
-            // Phase 2 uses the precomputed Cartesian endpoints.
             p.start = rot * p.start + trans;
             p.end = rot * p.end + trans;
+            // Compose the local→world rotation and shift the center.
+            p.rotation = rot * p.rotation;
+            p.center = rot * p.center + trans;
         }
     }
 }
