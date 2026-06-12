@@ -114,20 +114,27 @@ Both integrals are double integrals over two one-dimensional arc lengths. The ar
 
 ### 3.4 Simplified Form for Pulse Basis
 
-For pulse basis functions, ∂I/∂s' = 0 everywhere except at segment endpoints, where it is a delta function. Integrating by parts, the second term becomes a sum over endpoint contributions. For segment n with endpoints at s = s_n (start) and s = s_{n+1} (end):
+For pulse basis functions, ∂I/∂s' = 0 everywhere except at segment endpoints, where it is a delta function. The second term of Section 3.3 contains ∂/∂s ∂/∂s' K under a double integral. Both derivatives integrate out analytically:
 
-```
-∂I_n/∂s' → I_n [δ(s' - s_{n+1}) - δ(s' - s_n)]
-```
+1. The ∂/∂s' integral collapses via the pulse basis delta functions at the endpoints of segment n.
+2. The ∂/∂s integral collapses via the pulse testing function over segment m.
 
 The impedance matrix element becomes:
 
 ```
-Z[m,n] = jωμ₀/(4π) ∫_{Δm} ∫_{Δn} [t̂_m·t̂_n] K ds ds'
-        - 1/(jωε₀4π) ∫_{Δm} [K(r_m(s), r_n(s_{n+1})) - K(r_m(s), r_n(s_n))] ds
+Z[m,n] = jωμ₀/(4π) × T1[m,n]  -  1/(jωε₀4π) × T2[m,n]
 ```
 
-This is the form that is implemented in the matrix fill. See `design.md` for the specific quadrature used for each term.
+where:
+
+```
+T1[m,n] = ∫_{Δm} ∫_{Δn} [t̂_m·t̂_n] K(r_m(s), r_n(s')) ds ds'
+
+T2[m,n] = K(r_m(s_{m+1}), r_n(s_{n+1})) - K(r_m(s_{m+1}), r_n(s_n))
+        - K(r_m(s_m),     r_n(s_{n+1})) + K(r_m(s_m),     r_n(s_n))
+```
+
+T1 is a double integral evaluated with Gauss-Legendre quadrature. T2 is four point evaluations of the kernel at segment endpoints — no quadrature needed. Both terms are manifestly symmetric in m↔n (T1 by Fubini + kernel symmetry, T2 by inspection). See `design.md` for the specific quadrature strategy for T1.
 
 ---
 
@@ -273,11 +280,18 @@ near-singular subtraction. Standard Gauss-Legendre applies.
 
 ```
 Z[m,m] = jωμ₀/(4π) × { I_near  +  ∫∫ K_smooth ds ds' }
-        - 1/(jωε₀4π) × ∫ [K_exact(s, r_m(s_{m+1})) - K_exact(s, r_m(s_m))] ds
+        - 1/(jωε₀4π) × T2[m,m]
 ```
 
-where I_near is the closed form above and ∫∫ K_smooth is evaluated with adaptive
-Gauss-Legendre.
+where I_near is the closed form above, ∫∫ K_smooth is evaluated with adaptive
+Gauss-Legendre, and T2[m,m] is four endpoint evaluations (same form as Section 3.4):
+
+```
+T2[m,m] = K(s_{m+1}, s_{m+1}) - K(s_{m+1}, s_m) - K(s_m, s_{m+1}) + K(s_m, s_m)
+```
+
+All four evaluations are finite: the self-point evaluations K(s, s) = e^{-jka}/a
+are regularized by the exact kernel's wire radius.
 
 **Thin-wire limit consistency check.** As a → 0, using sinh⁻¹(Δ/a) → ln(2Δ/a):
 
@@ -554,10 +568,11 @@ where:
 ```
 T1[m,n] = ∫_{Δm} ∫_{Δn} [t̂_m(s)·t̂_n(s')] K_exact(s,s') ds ds'
 
-T2[m,n] = ∫_{Δm} [K_exact(s, r_n(s_{n+1})) - K_exact(s, r_n(s_n))] ds
+T2[m,n] = K_exact(r_m(s_{m+1}), r_n(s_{n+1})) - K_exact(r_m(s_{m+1}), r_n(s_n))
+        - K_exact(r_m(s_m),     r_n(s_{n+1})) + K_exact(r_m(s_m),     r_n(s_n))
 ```
 
-Both integrals are evaluated with the product Gauss-Legendre rule described in Section 7.1. The arc length elements ds = |r'(τ)| dτ are computed from the parametric forms in `docs/phase1-geometry/math.md` Sections 3–5.
+T1 is evaluated with the product Gauss-Legendre rule described in Section 7.1. The arc length elements ds = |r'(τ)| dτ are computed from the parametric forms in `docs/phase1-geometry/math.md` Sections 3–5. T2 is four point evaluations of K_exact at segment endpoints — no quadrature required.
 
 For self and near-neighbor elements (|m-n| ≤ 1), singularity extraction is applied before quadrature as described in Sections 5 and 6.
 

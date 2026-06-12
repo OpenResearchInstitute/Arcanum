@@ -9,5 +9,8 @@ crate-type = ["rlib"]
 
 [dependencies]
 arcanum-geometry = { path = "../arcanum-geometry" }
-nalgebra = { workspace = true }
-rayon    = { workspace = true }
+nalgebra    = { workspace = true }
+rayon       = { workspace = true }
+faer        = { workspace = true }
+num-complex = "0.4"
+gauss-quad  = "0.3"

@@ -221,14 +221,15 @@ This is sequential and fast relative to the fill. It is not parallelized. The co
 
 Evaluates Z[m,n] for |m-n| ≥ 2 using a product Gauss-Legendre rule.
 
-For each (s_i, s'_j) quadrature point pair:
+**T1 (vector potential, double integral):** For each (s_i, s'_j) quadrature point pair:
 1. Evaluate r_m(τ_i) and t̂_m(τ_i) from segment m's parametric form
-2. Evaluate r_n(τ'_j), t̂_n(τ'_j), and endpoint positions r_n(s_n), r_n(s_{n+1})
-3. Evaluate K_exact at (r_m(τ_i), r_n(τ'_j)) — the exact kernel (Section 6.3)
-4. Accumulate T1 and T2 contributions (see `math.md` Section 11)
-5. Apply weights and arc length elements |r'_m| and |r'_n|
+2. Evaluate r_n(τ'_j) and t̂_n(τ'_j) from segment n's parametric form
+3. Evaluate K_exact at (r_m(τ_i), r_n(τ'_j)) — the exact kernel (Section 6.4)
+4. Accumulate: T1 += w_i w_j (t̂_m · t̂_n) K_exact |r'_m| |r'_n|
 
 Default quadrature order: p = 8 (64 function evaluations per element).
+
+**T2 (scalar potential, four endpoint evaluations):** Evaluate K_exact at the four combinations of segment m and n endpoints: K(P_{m+1}, P_{n+1}) - K(P_{m+1}, P_n) - K(P_m, P_{n+1}) + K(P_m, P_n). No quadrature required — the ∂²K/(∂s∂s') double integral collapses analytically under pulse basis and pulse testing.
 
 ### 6.2 Near-Neighbor Element — compute_near_neighbor
 

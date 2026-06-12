@@ -29,7 +29,7 @@ See `docs/phase1-geometry/phase1-changes.md` item 5 for details.
 **`crates/arcanum-matrix-fill/Cargo.toml`** — add:
 - `faer = { workspace = true }` — dense matrix storage (Mat\<c64\>)
 - `num-complex = "0.4"` — Complex\<f64\> arithmetic
-- `gauss-quad = "0.2"` — Gauss-Legendre nodes/weights
+- `gauss-quad = "0.3"` — Gauss-Legendre nodes/weights (v0.3 constructor takes `NonZeroUsize`, returns directly instead of `Result`; nodes guaranteed sorted ascending)
 
 **Verify:** `cargo check -p arcanum-matrix-fill`
 
@@ -57,7 +57,7 @@ Wraps `faer::Mat<c64>`. Methods: `new(n)`, `read(m,n)`, `write(m,n,val)` (unsafe
 
 ### Step 5: quadrature.rs — GL table precomputation
 
-`QuadratureTables` stores precomputed GL nodes/weights for orders {4,8,16,32,64} and azimuthal nodes/weights on [0,2π]. Uses `gauss_quad::GaussLegendre`. Unit test: weights sum to 2.0, integral of x² over [-1,1] = 2/3.
+`QuadratureTables` stores precomputed GL nodes/weights for orders {4,8,16,32,64} and azimuthal nodes/weights on [0,2π]. Uses `gauss_quad::GaussLegendre` (v0.3 API: constructor takes `NonZeroUsize`, returns struct directly — no `Result` unwrap needed). Unit test: weights sum to 2.0, integral of x² over [-1,1] = 2/3.
 
 ### Step 6: classify.rs — Element classification
 
@@ -74,7 +74,7 @@ Unit tests: frame orthogonality, kernel approaches G₀(axis) for large separati
 
 `compute_regular(m, n, mesh, k, quad_tables, config) → c64`
 
-Product GL quadrature at order `quadrature_order_regular` for T1 and T2 terms. Each quadrature point calls `evaluate_exact_kernel`. Combines: `Z = jωμ₀/(4π) T1 - 1/(jωε₀·4π) T2`.
+Product GL quadrature at order `quadrature_order_regular` for T1 (double integral). T2 is four endpoint evaluations of K_exact (no quadrature needed — the ∂²K/(∂s∂s') double integral collapses analytically under pulse basis + pulse testing). Combines: `Z = jωμ₀/(4π) T1 - 1/(jωε₀·4π) T2`.
 
 ### Step 9: self_element.rs — Self-element integration
 
