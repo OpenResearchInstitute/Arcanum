@@ -52,7 +52,7 @@ pub fn fill_impedance_matrix(
     let n = mesh.segments.len();
     let k = wavenumber(frequency);
     let quad_tables = QuadratureTables::new(config.quadrature_order_azimuthal);
-    let classification = classify(n);
+    let classification = classify(mesh);
     let matrix = ZMatrix::new(n);
 
     // Step 3: Parallel fill — each element writes to a unique (row, col) cell.
@@ -70,9 +70,11 @@ pub fn fill_impedance_matrix(
     classification
         .near_neighbor_elements
         .par_iter()
-        .for_each(|&(m, n_idx)| {
-            let z = compute_near_neighbor(m, n_idx, mesh, k, &quad_tables, config);
-            unsafe { matrix.write(m, n_idx, z) };
+        .for_each(|pair| {
+            let z = compute_near_neighbor(
+                pair.m, pair.n, &pair.m_side, &pair.n_side, mesh, k, &quad_tables, config,
+            );
+            unsafe { matrix.write(pair.m, pair.n, z) };
         });
 
     classification

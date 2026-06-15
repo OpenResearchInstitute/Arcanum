@@ -104,9 +104,7 @@ fn v_thin_002_mutual_impedance_insensitive_to_radius() {
     for &a in &radii {
         let mesh = helpers::two_parallel_segments(SEG_LENGTH, a, separation);
         let z = fill_impedance_matrix(&mesh, FREQ, &config);
-        // Z[0,2] is the mutual impedance between the two parallel segments
-        // (index 1 is the spacer).
-        z_mutual.push(z.read(0, 2));
+        z_mutual.push(z.read(0, 1));
     }
 
     // The real part of mutual impedance should be stable.
@@ -115,7 +113,7 @@ fn v_thin_002_mutual_impedance_insensitive_to_radius() {
         let re_diff = (z.re - re_ref).abs() / re_ref.abs();
         assert!(
             re_diff < 0.01,
-            "V-THIN-002: Re(Z[0,2]) at a={:.6e} differs by {:.2e} (> 1%)",
+            "V-THIN-002: Re(Z[0,1]) at a={:.6e} differs by {:.2e} (> 1%)",
             radii[i], re_diff,
         );
     }
@@ -127,7 +125,7 @@ fn v_thin_002_mutual_impedance_insensitive_to_radius() {
         let im_diff = (z.im - im_ref).abs() / im_ref.abs();
         assert!(
             im_diff < 0.01,
-            "V-THIN-002: Im(Z[0,2]) at a={:.6e} differs by {:.2e} (> 1%)",
+            "V-THIN-002: Im(Z[0,1]) at a={:.6e} differs by {:.2e} (> 1%)",
             radii[i], im_diff,
         );
     }

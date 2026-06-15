@@ -1,4 +1,4 @@
-use arcanum_geometry::mesh::Mesh;
+use arcanum_geometry::mesh::{EndpointSide, Mesh};
 use faer::complex_native::c64;
 use std::f64::consts::PI;
 
@@ -31,9 +31,12 @@ use crate::quadrature::QuadratureTables;
 /// Cross-wire junctions (sequential segments on different wires) use the same
 /// collinear extraction formula (Option A). The error from this approximation
 /// grows with bend angle but is negligible for typical antenna geometries.
+#[allow(clippy::too_many_arguments)]
 pub fn compute_near_neighbor(
     m: usize,
     n: usize,
+    m_side: &EndpointSide,
+    n_side: &EndpointSide,
     mesh: &Mesh,
     k: f64,
     quad_tables: &QuadratureTables,
@@ -74,8 +77,10 @@ pub fn compute_near_neighbor(
         let ds_m = speed_m * 0.5 * w_m;
 
         // ε = distance from shared endpoint P within segment m.
-        // P is at σ_m = 1 (end of seg m), so ε = (1 - σ_m) × Δm.
-        let eps_m = (1.0 - sigma_m) * delta_m;
+        let eps_m = match m_side {
+            EndpointSide::End => (1.0 - sigma_m) * delta_m,
+            EndpointSide::Start => sigma_m * delta_m,
+        };
 
         for &(xi_n, w_n) in gl {
             let sigma_n = 0.5 * (xi_n + 1.0);
@@ -86,8 +91,10 @@ pub fn compute_near_neighbor(
             let ds_n = speed_n * 0.5 * w_n;
 
             // ε' = distance from shared endpoint P within segment n.
-            // P is at σ_n = 0 (start of seg n), so ε' = σ_n × Δn.
-            let eps_n = sigma_n * delta_n;
+            let eps_n = match n_side {
+                EndpointSide::End => (1.0 - sigma_n) * delta_n,
+                EndpointSide::Start => sigma_n * delta_n,
+            };
 
             let dot_tt = t_hat_m.dot(&t_hat_n);
 
@@ -137,7 +144,8 @@ mod tests {
     use super::*;
     use crate::quadrature::QuadratureTables;
     use arcanum_geometry::mesh::{
-        CurveParams, GroundDescriptor, GroundType, LinearParams, Material, Mesh, Segment, TagMap,
+        CurveParams, EndpointSide, GroundDescriptor, GroundType, LinearParams, Material, Mesh,
+        Segment, TagMap,
     };
     use nalgebra::Vector3;
 
@@ -182,7 +190,7 @@ mod tests {
         let tables = QuadratureTables::new(16);
         let config = MatrixFillConfig::default();
 
-        let z = compute_near_neighbor(0, 1, &mesh, k, &tables, &config);
+        let z = compute_near_neighbor(0, 1, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
 
         assert!(z.abs().is_finite(), "Z[0,1] should be finite, got {:?}", z);
         assert!(z.abs() > 0.0, "Z[0,1] should be nonzero");
@@ -196,8 +204,8 @@ mod tests {
         let tables = QuadratureTables::new(16);
         let config = MatrixFillConfig::default();
 
-        let z_01 = compute_near_neighbor(0, 1, &mesh, k, &tables, &config);
-        let z_10 = compute_near_neighbor(1, 0, &mesh, k, &tables, &config);
+        let z_01 = compute_near_neighbor(0, 1, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
+        let z_10 = compute_near_neighbor(1, 0, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
 
         let diff = (z_01 - z_10).abs();
         let scale = z_01.abs().max(z_10.abs());
@@ -218,7 +226,7 @@ mod tests {
         let tables = QuadratureTables::new(16);
         let config = MatrixFillConfig::default();
 
-        let z_near = compute_near_neighbor(0, 1, &mesh, k, &tables, &config);
+        let z_near = compute_near_neighbor(0, 1, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
         let z_reg = crate::regular::compute_regular(0, 2, &mesh, k, &tables, &config);
 
         assert!(
@@ -238,7 +246,7 @@ mod tests {
         let config = MatrixFillConfig::default();
 
         for i in 0..4 {
-            let z = compute_near_neighbor(i, i + 1, &mesh, k, &tables, &config);
+            let z = compute_near_neighbor(i, i + 1, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
             assert!(
                 z.re.is_finite() && z.im.is_finite(),
                 "Z[{},{}] contains NaN/Inf: {:?}",
@@ -257,8 +265,8 @@ mod tests {
         let tables = QuadratureTables::new(16);
         let config = MatrixFillConfig::default();
 
-        let z_01 = compute_near_neighbor(0, 1, &mesh, k, &tables, &config);
-        let z_12 = compute_near_neighbor(1, 2, &mesh, k, &tables, &config);
+        let z_01 = compute_near_neighbor(0, 1, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
+        let z_12 = compute_near_neighbor(1, 2, &EndpointSide::End, &EndpointSide::Start, &mesh, k, &tables, &config);
 
         let diff = (z_01 - z_12).abs();
         let scale = z_01.abs().max(z_12.abs());

@@ -241,7 +241,7 @@ impl Segment {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Which end of a segment is at a junction.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EndpointSide {
     Start,
     End,

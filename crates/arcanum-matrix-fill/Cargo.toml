@@ -14,3 +14,6 @@ rayon       = { workspace = true }
 faer        = { workspace = true }
 num-complex = "0.4"
 gauss-quad  = "0.3"
+
+[[example]]
+name = "convergence_data"

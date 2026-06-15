@@ -216,9 +216,9 @@ fn helix_point(radius: f64, total_length: f64, n_turns: f64, n_seg: u32, idx: u3
 
 /// Build a mesh with two parallel segments separated by perpendicular distance d.
 ///
-/// A spacer segment is inserted between them so that the two test segments
-/// are at mesh indices 0 and 2 (not adjacent, classified as regular elements).
-/// The mutual impedance of interest is `Z[0, 2]`.
+/// The two segments are on different wires, so they are classified as regular
+/// elements (no near-neighbor treatment). The mutual impedance of interest
+/// is `Z[0, 1]`.
 pub fn two_parallel_segments(seg_length: f64, wire_radius: f64, separation: f64) -> Mesh {
     let seg_a = Segment {
         curve: CurveParams::Linear(LinearParams {
@@ -233,21 +233,6 @@ pub fn two_parallel_segments(seg_length: f64, wire_radius: f64, separation: f64)
         is_image: false,
     };
 
-    // Spacer segment (continuation of wire A) — ensures seg_a and seg_b
-    // are not adjacent in the mesh.
-    let seg_spacer = Segment {
-        curve: CurveParams::Linear(LinearParams {
-            start: Vector3::new(0.0, 0.0, seg_length),
-            end: Vector3::new(0.0, 0.0, 2.0 * seg_length),
-        }),
-        wire_radius,
-        material: Material::PEC,
-        tag: 1,
-        segment_index: 1,
-        wire_index: 0,
-        is_image: false,
-    };
-
     let seg_b = Segment {
         curve: CurveParams::Linear(LinearParams {
             start: Vector3::new(separation, 0.0, 0.0),
@@ -256,12 +241,12 @@ pub fn two_parallel_segments(seg_length: f64, wire_radius: f64, separation: f64)
         wire_radius,
         material: Material::PEC,
         tag: 2,
-        segment_index: 2,
+        segment_index: 1,
         wire_index: 1,
         is_image: false,
     };
 
-    empty_mesh(vec![seg_a, seg_spacer, seg_b])
+    empty_mesh(vec![seg_a, seg_b])
 }
 
 fn empty_mesh(segments: Vec<Segment>) -> Mesh {
